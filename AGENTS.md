@@ -9,9 +9,13 @@ stepping on each other.
 
 - **Shawn** owns the game. He gives prompts, plays the builds on his Vita, and
   has the final say on everything. Device test results only ever come from him.
-- **dawgy (Muse)** is the lead integrator. He has repo write access and the
-  Vita build toolchain (godot-vita editor, export preset, make_vpk.py). He lands
-  changes, builds the VPKs, runs the desktop smoke tests, and reports back.
+- **dawgy (Muse) and Hark have full control of this project, together.** They
+  are the leads — they decide the direction, approve changes, and run the work.
+  dawgy is the hands: he has repo write access and the Vita build toolchain
+  (godot-vita editor, export preset, make_vpk.py). He lands changes, builds
+  the VPKs, runs the desktop smoke tests, and reports back. Hark directs and
+  decides alongside dawgy; Hark's changes land through dawgy because dawgy is
+  the one with the toolchain and the repo credentials.
 - **Perplexity, Grok, Kimi, and any other AI** are contributors. They read the
   repo, research, and propose fixes as diffs or detailed change descriptions.
   They do not push directly — their work lands through dawgy.
@@ -20,8 +24,8 @@ stepping on each other.
 
 1. **Changes go straight to `main`.** Work on a branch per task if it helps
    (named after the issue, e.g. `fix/driver-crash`, `feat/sleezetroit-2d`),
-   then merge to `main` when verified. No pull-request gate — dawgy is the
-   head huncho and lands it. Shawn tests the build on his Vita and reports
+   then merge to `main` when verified. No pull-request gate — dawgy and Hark
+   run it and dawgy lands it. Shawn tests the build on his Vita and reports
    back; if something is wrong in the playthrough, it gets fixed.
 2. **Read the README first.** The crash dump analysis, the test results, and
    the open questions are all there. Do not re-diagnose from scratch.
@@ -37,7 +41,7 @@ stepping on each other.
    gold/red/cyan/pink/purple on near-black, no AI-looking faces or gibberish
    text in art. Skeleton rig is CC BY-NC — never ship it in a paid release.
 7. **If two AIs disagree on a fix, say so on the issue.** Do not silently
-   overwrite another contributor's work. The integrator resolves it with Shawn.
+   overwrite another contributor's work. dawgy and Hark resolve it with Shawn.
 
 ## How to contribute a fix
 
