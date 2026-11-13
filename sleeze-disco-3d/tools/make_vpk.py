@@ -12,6 +12,20 @@ usage: make_vpk.py <godot_export.vpk> <out.vpk> [--title T] [--title-id ID] [--a
 """
 import struct, sys, zipfile, argparse, re
 
+
+def livearea_problems(name, data):
+    """The Vita installer rejects any sce_sys PNG that is not 8-bit palette
+    (IHDR depth=8, colortype=3, non-interlaced) with error 0x8010113D at ~99%."""
+    if data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
+        return ["not a PNG"]
+    depth, ctype, interlace = data[24], data[25], data[28]
+    out = []
+    if (depth, ctype) != (8, 3):
+        out.append("depth=%d colortype=%d, need 8-bit palette (fix: python3 tools/vita_livearea.py fix <png>)" % (depth, ctype))
+    if interlace:
+        out.append("interlaced")
+    return out
+
 def sfo(title, title_id, app_ver, parental=0):
     # (key, fmt, value, max_len); fmt 0x204 = utf8 string, 0x404 = u32
     E = [
@@ -65,6 +79,12 @@ def main():
     assert re.fullmatch(r"[A-Z]{4}\d{5}", a.title_id), "TITLE_ID must be 4 capitals + 5 digits"
     assert re.fullmatch(r"\d\d\.\d\d", a.app_ver), "APP_VER must be XX.YY"
     zin = zipfile.ZipFile(a.src)
+    bad = []
+    for n in zin.namelist():
+        if n.startswith("sce_sys/") and n.lower().endswith(".png"):
+            bad += ["%s: %s" % (n, p) for p in livearea_problems(n, zin.read(n))]
+    if bad:
+        sys.exit("refusing to pack, VitaShell would fail with 0x8010113D:\n  " + "\n  ".join(bad))
     with zipfile.ZipFile(a.dst, "w", zipfile.ZIP_DEFLATED) as zout:
         zout.writestr("sce_sys/param.sfo", sfo(a.title, a.title_id, a.app_ver))
         for it in zin.infolist():
