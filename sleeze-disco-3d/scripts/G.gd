@@ -21,7 +21,7 @@ var meta = {}            # clip metadata per character (data/clipmeta.json)
 var bot = false          # scripted-input test mode (--bot)
 var shots = false        # write screenshots in bot mode
 var test_frames = 3000
-var cli_profile = ""      # --profile=A|B|C|D skips the boot menu
+var cli_profile = ""      # --profile=A..G skips the boot menu
 
 # fight state
 var score = 0
@@ -66,7 +66,18 @@ const PROFILES = {
 	"B": {"label": "SAFE + FOG  (480x272 PSX v0.2)", "fog": true, "glow": false, "dof": false, "crowd": false, "max_alive": 2},
 	"C": {"label": "SAFE + DOF  (480x272 PSX v0.2)", "fog": false, "glow": false, "dof": true, "crowd": false, "max_alive": 2},
 	"D": {"label": "FULL  (480x272 PSX v0.2, fog, DOF, crowd)", "fog": true, "glow": false, "dof": true, "crowd": true, "max_alive": 4},
+	# v0.2.1 bisect (issues #1/#2). Each is A plus ONE change, so the A-vs-X
+	# fps and crash difference isolates one cost. Hypothesis under test: the
+	# per-frame cost is skeleton pose updates -> skinning (CPU software skin +
+	# vertex re-upload, or bone-texture re-upload) going through the PVR
+	# driver every frame, which would also explain the uncached-heap overrun.
+	"E": {"label": "A + FROZEN ANIM  (skeletons never re-pose)", "fog": false, "glow": false, "dof": false, "crowd": false, "max_alive": 2, "freeze_anim": true},
+	"F": {"label": "A + HIDDEN FIGHTERS  (gameplay runs, no skinned draws)", "fog": false, "glow": false, "dof": false, "crowd": false, "max_alive": 2, "hide_fighters": true},
+	"G": {"label": "A + NO HUD  (no 2D canvas / text redraw)", "fog": false, "glow": false, "dof": false, "crowd": false, "max_alive": 2, "no_hud": true},
 }
+
+func flag(name):
+	return PROFILES[profile].get(name, false)
 var profile = "A"
 var log_path = ""
 
@@ -89,7 +100,7 @@ func _open_log():
 		var path = base + "/boot.log"
 		var f = File.new()
 		if f.open(path, File.WRITE) == OK:
-			f.store_line("SLEEZE DISCO 3D v0.2 PSX boot log")
+			f.store_line("SLEEZE DISCO 3D v0.2.1 DIAG boot log")
 			f.close()
 			log_path = path
 			return

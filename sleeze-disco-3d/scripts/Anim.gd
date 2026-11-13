@@ -26,6 +26,10 @@ var act_time = 0.0       # clip time of the playing action
 var act_rate = 1.0
 var act_end = 0.0        # clip time where the action ends
 var fade_out = 0.16
+# v0.2.1 profile E: pose once at setup, then never touch the AnimationPlayer
+# again (manual process mode, no play/seek), so the skeleton stays static and
+# no skinning work is re-submitted. Gameplay timing (act_time/phase) still runs.
+var frozen = false
 
 func setup(owner_node, anim_player, loco):
 	ap = anim_player
@@ -36,6 +40,10 @@ func setup(owner_node, anim_player, loco):
 	_cur_loco = "idle"
 	_cur_rate = 1.0
 	ap.play("idle", 0.0, 1.0)
+	frozen = G.flag("freeze_anim")
+	if frozen:
+		ap.seek(0.0, true)
+		ap.playback_process_mode = AnimationPlayer.ANIMATION_PROCESS_MANUAL
 
 func clip_len(clip):
 	if ap.has_animation(clip):
@@ -65,6 +73,10 @@ func update_loco(speed, delta):
 		_cur_loco = pick[0]
 		_cur_rate = rate
 		return
+	if frozen:
+		_cur_loco = pick[0]
+		_cur_rate = rate
+		return
 	if pick[0] != _cur_loco:
 		_cur_loco = pick[0]
 		_cur_rate = rate
@@ -76,8 +88,9 @@ func update_loco(speed, delta):
 
 func play(clip, start, rate, end_time = -1.0, fin = 0.07, fout = 0.16):
 	# one clip replaces whatever is playing, blended in over `fin` seconds
-	ap.play(clip, fin, rate)
-	ap.seek(start, true)
+	if not frozen:
+		ap.play(clip, fin, rate)
+		ap.seek(start, true)
 	act_name = clip
 	act_time = start
 	act_rate = rate
@@ -94,6 +107,8 @@ func playing():
 	return act_name != ""
 
 func _resume_loco(blend):
+	if frozen:
+		return
 	if _cur_loco == "":
 		_cur_loco = "idle"
 	ap.play(_cur_loco, blend, _cur_rate)

@@ -64,6 +64,8 @@ func _ready():
 	model = load("res://assets/models/%s.glb" % st.model).instance()
 	model.name = "Model"
 	add_child(model)
+	if G.flag("hide_fighters"):
+		model.visible = false   # v0.2.1 profile F: no skinned draws, gameplay unchanged
 	skel = arena.find_type(model, "Skeleton")
 	var ap = arena.find_type(model, "AnimationPlayer")
 	meta = G.meta[st.model]
