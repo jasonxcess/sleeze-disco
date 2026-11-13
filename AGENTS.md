@@ -18,9 +18,11 @@ stepping on each other.
 
 ## Rules
 
-1. **One branch per task, named after the issue** (e.g. `fix/driver-crash`,
-   `feat/sleezetroit-2d`). Never push to `main` directly. Every change lands
-   through a pull request.
+1. **Changes go straight to `main`.** Work on a branch per task if it helps
+   (named after the issue, e.g. `fix/driver-crash`, `feat/sleezetroit-2d`),
+   then merge to `main` when verified. No pull-request gate — dawgy is the
+   head huncho and lands it. Shawn tests the build on his Vita and reports
+   back; if something is wrong in the playthrough, it gets fixed.
 2. **Read the README first.** The crash dump analysis, the test results, and
    the open questions are all there. Do not re-diagnose from scratch.
 3. **Never claim a device result you did not get from Shawn.** Desktop smoke
@@ -34,7 +36,7 @@ stepping on each other.
 6. **Keep the lanes:** PSX low-poly look, flat unshaded materials, palette
    gold/red/cyan/pink/purple on near-black, no AI-looking faces or gibberish
    text in art. Skeleton rig is CC BY-NC — never ship it in a paid release.
-7. **If two AIs disagree on a fix, say so in the PR.** Do not silently
+7. **If two AIs disagree on a fix, say so on the issue.** Do not silently
    overwrite another contributor's work. The integrator resolves it with Shawn.
 
 ## How to contribute a fix
