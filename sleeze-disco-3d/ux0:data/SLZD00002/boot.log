@@ -1,0 +1,20 @@
+SLEEZE DISCO 3D v0.2 PSX boot log
+[   495 ms] G ready, log=ux0:data/SLZD00002/boot.log
+[   497 ms] Boot._ready
+[   514 ms] profile A: SAFE  (480x272 PSX v0.2, no FX, no crowd, 2 thugs)
+[   518 ms] Boot drawn
+[   580 ms] Arena._ready profile=A
+[   582 ms] stage: start
+[   585 ms] stage: club
+[   672 ms] stage: nav
+[   803 ms] stage: fx
+[   867 ms] stage: fighters
+[   910 ms] stage: env
+[   938 ms] stage: present 1/5
+[   945 ms] stage: present 2/5
+[   953 ms] stage: present 3/5
+[   959 ms] stage: present 4/5
+[   965 ms] stage: present 5/5
+[   972 ms] stage: music
+[   993 ms] stage: 
+[   993 ms] Arena ready

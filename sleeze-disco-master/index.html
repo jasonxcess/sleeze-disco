@@ -1,0 +1,2459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SLEEZE DISCO — Beat Kune Do</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --gold: #FFC83C; --red: #E63232; --cyan: #00F0FF; --pink: #FF33CC;
+    --purple: #9D4EDD; --ink: #06030E; --panel: #0E0A1C; --mut: #8E94A5;
+    --font-display: 'Arial Black', Impact, sans-serif;
+    --font-mono: 'Courier New', Courier, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+  html, body { background: var(--ink); color: #FFF; font-family: var(--font-mono); overflow-x: hidden; width: 100%; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+  .masthead { text-align: center; padding: 12px 10px 8px; width: 100%; }
+  .masthead h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 44px); letter-spacing: 2px; line-height: 1; text-shadow: 3px 3px 0 var(--red), 0 0 20px rgba(230,50,50,0.6); }
+  .masthead h1 span { color: var(--gold); }
+  .masthead .sub { font-size: 10px; color: var(--cyan); letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
+
+  .stage { position: relative; width: 100%; max-width: 960px; padding: 0 8px; }
+  #wrap { position: relative; width: 100%; aspect-ratio: 960/544; background: #090514; border: 2px solid var(--red); box-shadow: 0 0 25px rgba(230, 50, 50, 0.35); overflow: hidden; border-radius: 4px; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Overlay Screens */
+  .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: radial-gradient(circle at center, rgba(20,10,40,0.92) 0%, rgba(5,2,12,0.98) 100%); padding: 16px; z-index: 10; }
+  .hidden { display: none !important; }
+  .tag { font-size: 11px; color: var(--gold); letter-spacing: 3px; margin-bottom: 6px; text-transform: uppercase; font-weight: bold; }
+  #unlockLine { font-size: 16px; }
+  .big { font-family: var(--font-display); font-size: clamp(24px, 5vw, 46px); line-height: 1; text-shadow: 3px 3px 0 var(--red); margin-bottom: 10px; }
+  .desc { font-size: clamp(11px, 2.2vw, 13px); line-height: 1.5; color: #D0D5E0; max-width: 560px; margin-bottom: 14px; }
+  .desc b { color: var(--cyan); }
+
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; max-width: 480px; }
+  .btn { flex: 1 1 180px; padding: 12px 16px; background: var(--panel); color: #FFF; border: 2px solid var(--red); font-family: var(--font-display); font-size: 14px; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; transition: 0.1s; }
+  .btn:active, .btn:hover { background: var(--red); color: #FFF; box-shadow: 0 0 15px var(--red); transform: scale(0.98); }
+  .btn.primary { background: var(--red); border-color: var(--gold); }
+  .btn.ghost { border-color: #444; color: #AAA; }
+
+  /* Mobile / Touch Pad below canvas for phone testing */
+  .touch-pad { display: none; width: 100%; max-width: 960px; padding: 12px 8px; gap: 10px; justify-content: space-between; }
+  @media (max-width: 820px), (pointer: coarse) {
+    .touch-pad { display: flex; }
+  }
+  .pad-group { display: grid; grid-template-columns: repeat(3, 54px); grid-template-rows: repeat(3, 54px); gap: 6px; }
+  .t-btn { background: #130E24; border: 2px solid #332954; border-radius: 8px; color: #FFF; font-family: var(--font-display); font-size: 13px; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  .t-btn:active { background: var(--red); border-color: var(--gold); }
+  .t-btn.act-p { border-color: var(--pink); color: var(--pink); }
+  .t-btn.act-k { border-color: var(--cyan); color: var(--cyan); }
+  .t-btn.act-d { border-color: var(--gold); color: var(--gold); }
+  .t-btn.act-t { border-color: var(--red); background: rgba(230,50,50,0.2); }
+  .t-btn.act-n { border-color: var(--purple); color: #D9B8FF; }
+
+  .controls-bar { width: 100%; max-width: 960px; padding: 8px 10px; display: flex; justify-content: space-between; font-size: 11px; color: var(--mut); flex-wrap: wrap; gap: 6px; }
+  .controls-bar b { color: #FFF; background: var(--red); padding: 1px 5px; border-radius: 2px; }
+
+  /* Title screen: copy + vector Jay side by side (art hides on phones) */
+  .title-wrap { display: flex; align-items: stretch; gap: 18px; width: 100%; height: 100%; }
+  .title-copy { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .title-art { flex: 0 0 230px; display: flex; align-items: flex-end; justify-content: center; }
+  .title-art svg { height: 100%; max-height: 470px; width: auto; display: block; }
+  @media (max-width: 640px) {
+    .controls-bar { display: none; }
+    .screen { overflow-y: auto; padding: 10px; justify-content: flex-start; }
+    .title-art { display: none; }
+    #scr-title .desc { display: none; }
+    .big { font-size: 26px; }
+    .btn { flex: 1 1 140px; padding: 10px 12px; font-size: 12px; }
+    .desc { font-size: 11px; }
+    .tag { font-size: 10px; }
+    /* P4: the story exchange and the unlock banner make their screens
+       taller — compact them so the FIGHT / TITLE buttons stay visible
+       on a 390px phone instead of sitting below the fold. The story
+       screen drops its tag on phones (the intro card just said Ch.3). */
+    #scr-story { padding: 4px; }
+    #scr-story .tag { display: none; }
+    #scr-story .desc { font-size: 10px; line-height: 1.35; padding: 4px 8px; }
+    #scr-story .big { font-size: 20px; margin-bottom: 4px; }
+    #scr-story .btn { padding: 8px 12px; }
+    /* P6: the intro card gained the TRACK line, which pushed FIGHT half
+       below the fold on a 390px phone — compact it the same way, and
+       keep the track line on one line instead of wrapping to two. */
+    #scr-intro { padding: 6px; }
+    #scr-intro .tag { font-size: 9px; margin-bottom: 2px; }
+    #scr-intro .big { font-size: 22px; margin-bottom: 4px; }
+    #scr-intro .desc { font-size: 11px; margin-bottom: 6px; }
+    #scr-intro #introTrack { white-space: nowrap; font-size: 11px; letter-spacing: 1px; }
+    #scr-intro .btn { padding: 8px 12px; }
+    /* P6: the mode screen grew (5 endless buttons + import row) — on
+       phones it scrolls inside the stage, so tighten it to keep the
+       chapter buttons and the first endless row near the top. */
+    #scr-mode { padding: 6px; }
+    #scr-mode .big { font-size: 22px; margin-bottom: 4px; }
+    #scr-mode .desc { font-size: 10px; margin-bottom: 6px; }
+    #scr-mode .tag { margin-bottom: 4px; }
+    #scr-mode .tag[style] { margin-top: 8px !important; }
+    #scr-mode .btn { padding: 8px 10px; }
+    #scr-end .big { font-size: 22px; margin-bottom: 6px; }
+    #scr-end .desc { margin-bottom: 8px; }
+    #unlockLine { font-size: 13px; }
+    #scr-end .btn { flex: 1 1 100px; font-size: 11px; }
+  }
+  /* Hub / shop rows (P5) — a clean DOM list, no canvas text */
+  .shop-list { width: 100%; max-width: 640px; text-align: left; margin-bottom: 12px; }
+  .shop-row { display: flex; align-items: center; gap: 10px; background: #000; border: 1px solid #333; padding: 8px 10px; margin-bottom: 6px; }
+  .shop-row .s-info { flex: 1 1 auto; min-width: 0; }
+  .shop-row .s-name { font-size: 12px; font-weight: bold; color: #FFC83C; letter-spacing: 1px; }
+  .shop-row .s-desc { font-size: 11px; color: #D0D5E0; line-height: 1.4; margin-top: 2px; }
+  .shop-row .s-cost { font-size: 12px; font-weight: bold; color: #FFF; white-space: nowrap; }
+  .shop-row .btn { flex: 0 0 110px; padding: 8px 6px; font-size: 12px; }
+  .shop-row .btn:disabled { opacity: 0.4; cursor: default; background: var(--panel); border-color: #444; color: #888; box-shadow: none; transform: none; }
+  .shop-row .btn.equipped { border-color: var(--gold); color: var(--gold); }
+  .hub-stat { white-space: nowrap; }
+  #hubBal { font-size: 15px; color: #FFF; }
+  #hubBal b { color: #FFC83C; font-size: 18px; }
+  @media (max-width: 640px) {
+    #scr-hub { padding: 8px; }
+    #hubBal { font-size: 12px; line-height: 1.6; }
+    #scr-hub .big { font-size: 22px; margin-bottom: 4px; }
+    #scr-hub .desc { margin-bottom: 8px; }
+    .shop-row { flex-wrap: wrap; }
+    .shop-row .s-cost { flex: 1 1 auto; }
+    .shop-row .btn { flex: 1 1 100px; }
+  }
+
+  /* Calibration slider on the title screen */
+  .cal-row { margin-top: 14px; width: 100%; max-width: 300px; text-align: center; }
+
+  /* Mode screen (P6): the endless track picker is five buttons plus
+     the import row — let the rows run wider than the story buttons. */
+  #scr-mode .btn-row { max-width: 640px; }
+  #importStatus { max-width: 560px; }
+  .cal-row label { font-size: 11px; letter-spacing: 2px; color: var(--gold); }
+  .cal-row input[type="range"] { width: 100%; accent-color: var(--gold); margin-top: 6px; }
+  .cal-row .cal-hint { font-size: 10px; color: var(--mut); margin-top: 4px; letter-spacing: 1px; }
+
+  /* Rotate prompt — portrait phones only, sits above the stage, never covers the game */
+  #rotateBar { display: none; width: 100%; text-align: center; font-size: 11px; letter-spacing: 2px; color: var(--gold); background: rgba(255,200,60,0.08); border-bottom: 1px solid rgba(255,200,60,0.35); padding: 6px 8px; }
+  @media (pointer: coarse) and (orientation: portrait) {
+    #rotateBar { display: block; }
+  }
+
+  /* Cooldown state on touch buttons */
+  .t-btn.cooling { opacity: 0.35; }
+
+  /* Landscape phones: the pad floats over the canvas bottom corners */
+  @media (pointer: coarse) and (orientation: landscape) {
+    .stage { width: min(100%, calc((100vh - 64px) * 960 / 544)); width: min(100%, calc((100dvh - 64px) * 960 / 544)); }
+    .controls-bar { display: none; }
+    #scr-title .desc { display: none; }
+    .big { font-size: 24px; }
+    .cal-row { margin-top: 8px; }
+    .masthead { padding: 4px 10px 2px; }
+    .masthead h1 { font-size: 22px; }
+    .masthead .sub { display: none; }
+    .touch-pad { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 6px 10px; background: linear-gradient(transparent, rgba(6,3,14,0.55)); }
+    .touch-pad .t-btn { background: rgba(19,14,36,0.72); }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <h1>SLEEZE <span>DISCO</span></h1>
+  <p class="sub">BEAT KUNE DO • NEON ARCADE PROTOTYPE (960×544)</p>
+</header>
+
+<div id="rotateBar">↻ ROTATE FOR FULL SCREEN</div>
+
+<main class="stage">
+  <div id="wrap">
+    <canvas id="game" width="960" height="544"></canvas>
+
+    <!-- TITLE SCREEN -->
+    <div id="scr-title" class="screen">
+      <div class="title-wrap">
+        <div class="title-copy">
+          <div class="tag">Harmony Corp Took The Stage</div>
+          <div class="big">SLEEZE DISCO</div>
+          <div class="desc">Strike, dodge, and parry on the beat.<br><b>PERFECT (±65ms)</b> deals +50% damage and builds <b>FEVER</b> — fill it for <b>FEVER RUSH</b>.<br>Off-beat swings snap to the next beat and still land — only getting hit breaks your combo. Dance [F] builds Fever too; every 12 combo earns a ★, and [E] spends one on a finisher.</div>
+          <div class="btn-row">
+            <button class="btn primary" onclick="showScreen('mode')">▶ ENTER THE CLUB</button>
+            <button class="btn" onclick="openHub('title')">GREEN ROOM</button>
+            <button class="btn ghost" onclick="showScreen('howto')">CONTROLS</button>
+          </div>
+          <div class="cal-row">
+            <label for="calSlider">AUDIO DELAY (ms) <span id="calVal">0</span></label>
+            <input type="range" id="calSlider" min="-150" max="150" step="5" value="0">
+            <div class="cal-hint">PHONE AUDIO RUNS LATE — NUDGE IT UNTIL PERFECT LANDS ON THE BEAT</div>
+            <button class="btn ghost" id="tapBtn" type="button" onclick="tapAlong()">♪ TAP ALONG</button>
+            <div class="cal-hint" id="tapStatus">TAP 8 TIMES ON THE CLICK TO TUNE THE DELAY</div>
+          </div>
+        </div>
+        <div class="title-art">
+<svg viewBox="0 0 320 544" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Jay Sleeze — black vector silhouette, leather jacket, drumsticks crossed, neon rim light">
+          <defs>
+            <radialGradient id="jayGlow" cx="50%" cy="46%" r="55%">
+              <stop offset="0%" stop-color="#FFC83C" stop-opacity="0.28"/>
+              <stop offset="55%" stop-color="#E63232" stop-opacity="0.12"/>
+              <stop offset="100%" stop-color="#E63232" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="jayRim" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#FFC83C"/>
+              <stop offset="50%" stop-color="#E63232"/>
+              <stop offset="100%" stop-color="#3CDCFF"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="160" cy="280" rx="140" ry="230" fill="url(#jayGlow)"/>
+          <!-- legs: thick stance, gold underlay gives the neon outline -->
+          <g stroke-linecap="round" fill="none">
+            <path d="M124,330 L114,518" stroke="#FFC83C" stroke-width="36"/>
+            <path d="M196,330 L206,518" stroke="#FFC83C" stroke-width="36"/>
+            <path d="M124,330 L114,518" stroke="#07070D" stroke-width="30"/>
+            <path d="M196,330 L206,518" stroke="#07070D" stroke-width="30"/>
+          </g>
+          <ellipse cx="112" cy="528" rx="19" ry="9" fill="#07070D" stroke="url(#jayRim)" stroke-width="2"/>
+          <ellipse cx="208" cy="528" rx="19" ry="9" fill="#07070D" stroke="url(#jayRim)" stroke-width="2"/>
+          <!-- torso: leather jacket, wide shoulders -->
+          <path d="M100,152 C114,138 136,132 160,132 C184,132 206,138 220,152 L228,296 C230,318 216,332 198,332 L122,332 C104,332 90,318 92,296 Z" fill="#07070D" stroke="url(#jayRim)" stroke-width="3" stroke-linejoin="round"/>
+          <!-- white tee + red lining V -->
+          <path d="M151,140 L160,170 L169,140 Z" fill="#E8E8E8"/>
+          <path d="M144,134 L160,176 L176,134" fill="none" stroke="#E63232" stroke-width="4" stroke-linecap="round"/>
+          <!-- gold chain -->
+          <path d="M136,142 Q160,174 184,142" fill="none" stroke="#FFC83C" stroke-width="3" stroke-linecap="round"/>
+          <!-- arms: A-frame, fists meeting low, drummer-ready -->
+          <g stroke-linecap="round" fill="none">
+            <path d="M100,160 C76,208 80,258 110,290 C122,302 138,308 150,300" stroke="#FFC83C" stroke-width="36"/>
+            <path d="M220,160 C244,208 240,258 210,290 C198,302 182,308 170,300" stroke="#FFC83C" stroke-width="36"/>
+            <path d="M100,160 C76,208 80,258 110,290 C122,302 138,308 150,300" stroke="#07070D" stroke-width="30"/>
+            <path d="M220,160 C244,208 240,258 210,290 C198,302 182,308 170,300" stroke="#07070D" stroke-width="30"/>
+          </g>
+          <circle cx="150" cy="300" r="12" fill="#07070D" stroke="url(#jayRim)" stroke-width="2"/>
+          <circle cx="170" cy="300" r="12" fill="#07070D" stroke="url(#jayRim)" stroke-width="2"/>
+          <!-- drumsticks, crossed in front, tips up and out -->
+          <g stroke="#FFC83C" stroke-width="6" stroke-linecap="round">
+            <line x1="150" y1="300" x2="216" y2="234"/>
+            <line x1="170" y1="300" x2="104" y2="234"/>
+          </g>
+          <circle cx="216" cy="234" r="4" fill="#FFC83C"/>
+          <circle cx="104" cy="234" r="4" fill="#FFC83C"/>
+          <!-- neck + head, blank silhouette face, hair cap on top -->
+          <path d="M145,110 L175,110 L172,134 L148,134 Z" fill="#07070D"/>
+          <circle cx="160" cy="84" r="30" fill="#07070D" stroke="url(#jayRim)" stroke-width="3"/>
+          <path d="M130,82 C128,52 144,40 160,40 C176,40 192,52 190,82 C184,64 174,56 160,56 C146,56 136,64 130,82 Z" fill="#07070D"/>
+          <!-- baseline rule -->
+          <rect x="58" y="540" width="204" height="3" fill="url(#jayRim)"/>
+        </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODE SELECT (P6) — story chapters run on Sleeze's own tracks;
+         endless picks any of the five, or imports your own file. -->
+    <div id="scr-mode" class="screen hidden">
+      <div class="tag">Select Track</div>
+      <div class="big">PICK YOUR NIGHT</div>
+      <div class="desc">STORY CHAPTERS RUN ON SLEEZE'S OWN TRACKS — SYNTH REBUILDS, STREAMER-SAFE.</div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="startStory(1)">CH.1 DR. CLIPBOARD — MY LUVA · FUNK 100 BPM</button>
+        <button class="btn" onclick="startStory(2)">CH.2 SUBJECT SEVEN — DCEASED · HOUSE 120 BPM</button>
+        <button class="btn" onclick="startStory(3)">CH.3 VEX — SHIT TALKIN · DARK DISCO 140 BPM</button>
+      </div>
+      <div class="tag" style="margin-top:14px">Endless — Pick A Track</div>
+      <div class="btn-row" id="endlessTracks">
+        <button class="btn" onclick="startInfiniteTrack('myluva')">∞ MY LUVA — FUNK 100 BPM</button>
+        <button class="btn" onclick="startInfiniteTrack('bigscreen')">∞ BIG SCREEN — FUNK 110 BPM</button>
+        <button class="btn" onclick="startInfiniteTrack('dceased')">∞ DCEASED — HOUSE 120 BPM</button>
+        <button class="btn" onclick="startInfiniteTrack('foolmeonce')">∞ FOOL ME ONCE — HOUSE 130 BPM</button>
+        <button class="btn" onclick="startInfiniteTrack('shittalkin')">∞ SHIT TALKIN — DARK DISCO 140 BPM</button>
+      </div>
+      <div class="tag" style="margin-top:14px">Endless — Your Own Track (Web Only)</div>
+      <div class="btn-row">
+        <button class="btn ghost" onclick="document.getElementById('importFile').click()">♪ IMPORT MP3 / WAV</button>
+        <button class="btn primary hidden" id="importConfirm" onclick="confirmImport()">▶ PLAY ENDLESS</button>
+      </div>
+      <div class="desc" id="importStatus" style="margin-top:8px">PICK AN MP3 OR WAV — THE BEAT GETS READ OFF THE FILE (80–180 BPM), THEN IT LOOPS UNDER ENDLESS. ON THE VITA, ENDLESS USES THE PRESET TRACK BPMS ABOVE.</div>
+      <input type="file" id="importFile" accept="audio/*" style="display:none" onchange="onImportFile(event)">
+    </div>
+
+    <!-- HOW TO PLAY -->
+    <div id="scr-howto" class="screen hidden">
+      <div class="tag">Combat Manual</div>
+      <div class="big">BEAT KUNE DO</div>
+      <div class="desc" style="text-align:left; background:#000; padding:12px; border:1px solid #333;">
+        <b>ARROWS / D-PAD:</b> Move across the dancefloor<br>
+        <b>[J] / □ PUNCH:</b> Fast beat jab &nbsp;|&nbsp; <b>[K] / △ KICK:</b> Heavy knockback<br>
+        <b>[L] / ○ THROW:</b> Ranged neon drumstick<br>
+        <b>[SPACE] / ✕ DODGE:</b> Dash through red attacks<br>
+        <b>[S] / L1 PARRY:</b> Deflect & stun attackers<br>
+        <b>[F] / ♪ DANCE:</b> Pure dance move — no damage, builds Fever + style variety<br>
+        <b>[E] / R1 TAKEDOWN:</b> Spend 1 ★ token (earned every 12 combo — buy more slots in the Green Room) for a cinematic finisher<br>
+        <b>BOSS MOVES:</b> beat a chapter boss to take its move — Ch.1 unlocks DASH STRIKE (the dash itself hits), Ch.2 unlocks SPINBACK KICK (wider, harder kicks)<br>
+        <b>FEVER:</b> on-beat hits + dance fill it — at 100% FEVER RUSH starts on its own: faster attacks, denser drums, wild lights<br>
+        <b>GOLD COUNTER:</b> parry while the gold COUNTER prompt is up to stun &amp; smash<br>
+        <b>OFF-BEAT:</b> swings snap to the next beat and still land — only getting hit breaks your combo<br>
+        <b>MUSIC:</b> story chapters run on Sleeze's own tracks — My Luva (Ch.1), DCeased (Ch.2), Shit Talkin (Ch.3). Endless lets you pick any of the five, or import your own MP3/WAV — the beat gets read off the file and it loops under the fight (web only; the Vita uses the preset track BPMs)
+      </div>
+      <div class="desc" style="font-size:10px;opacity:.6;margin-top:6px">Soundtrack: SleezeTeamJason — My Luva, DCeased, Shit Talkin, Big Screen, Fool Me Once (synth rebuilds of his own tracks, no licensed recordings). 3D credits (CC BY 4.0, via Sketchfab): "PSX Graphics | Low Poly Woman" by murilo.kleine • "Enemy1" by bumstrum • "Raised dead" by Pjotr Heinkens (CC BY-NC) • "PSXprop - Male Character 02" by WardsterSAW (Free Standard) • Motion: Adobe Mixamo • "Night Dance Club Lowpoly" by 00amza (CC BY 4.0)</div>
+      <div class="desc" id="unlockList" style="font-size:11px;color:#FFC83C;margin-top:6px">NO BOSS MOVES YET — BEAT A CHAPTER BOSS TO TAKE ITS MOVE.</div>
+      <button class="btn primary" onclick="showScreen('title')">GOT IT</button>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="scr-end" class="screen hidden">
+      <div class="tag" id="endTag">RESULTS</div>
+      <div class="big" id="endTitle">STAGE CLEAR</div>
+      <div class="tag hidden" id="unlockLine" style="color:#FFC83C">★ UNLOCKED ★</div>
+      <div class="desc" id="resultsBox"></div>
+      <div class="btn-row">
+        <button class="btn primary hidden" id="btnNext" onclick="nextChapter()">NEXT CHAPTER →</button>
+        <button class="btn primary" onclick="retryFight()">↻ PLAY AGAIN</button>
+        <button class="btn" onclick="openHub('end')">HUB</button>
+        <button class="btn ghost" onclick="showScreen('title')">TITLE</button>
+      </div>
+    </div>
+
+    <!-- HUB (P5) — the club's green room / lab break room. Fan balance
+         up top, one row per shop item, TITLE + CONTINUE to get out.
+         CONTINUE goes back to wherever the hub was opened from. -->
+    <div id="scr-hub" class="screen hidden">
+      <div class="tag">Green Room — Lab Break Room</div>
+      <div class="big">THE HUB</div>
+      <div class="desc" id="hubBal">FANS: <b>0</b></div>
+      <div class="shop-list" id="shopList"></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="closeHub()">CONTINUE →</button>
+        <button class="btn ghost" onclick="showScreen('title')">TITLE</button>
+      </div>
+    </div>
+
+    <!-- PAUSE — shown on tab-out, tap to resume -->
+    <div id="pauseOverlay" class="screen hidden">
+      <div class="tag">PAUSED</div>
+      <div class="big">TAKE A BREATH</div>
+      <div class="desc">THE BEAT IS WAITING. TAP TO JUMP BACK IN.</div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="resumeGame()">▶ RESUME</button>
+      </div>
+    </div>
+
+    <!-- CHAPTER INTRO CARD (P4) — boss name, lab title, genre, BPM, track (P6) -->
+    <div id="scr-intro" class="screen hidden">
+      <div class="tag" id="introTag">CHAPTER 1 — FUNK · 100 BPM</div>
+      <div class="big" id="introName">DR. CLIPBOARD</div>
+      <div class="desc" id="introTitle" style="color:#FFC83C;font-weight:bold;letter-spacing:2px">HEAD OF DOOR SCIENCE</div>
+      <div class="desc" id="introTrack" style="color:#00F0FF;font-weight:bold;letter-spacing:2px">TRACK: MY LUVA · 100 BPM · FUNK</div>
+      <div class="desc" id="introFlavor"></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="fightFromIntro()">▶ FIGHT</button>
+        <button class="btn ghost" onclick="showScreen('mode')">BACK</button>
+      </div>
+    </div>
+
+    <!-- VEX STORY EXCHANGE (P4) — between the Ch.3 intro card and the fight -->
+    <div id="scr-story" class="screen hidden">
+      <div class="tag">CH.3 — VEX</div>
+      <div class="big">LAST DANCE</div>
+      <div class="desc" style="text-align:left; background:#000; padding:12px; border:1px solid #333; line-height:1.9">
+        <b style="color:#FF33CC">VEX:</b> "Jay. You actually came. Cute."<br>
+        <b style="color:#FFC83C">JAY:</b> "Vex. Whole club got clipboards and lab coats. What is this?"<br>
+        <b style="color:#FF33CC">VEX:</b> "It's a lab, baby. You the next experiment. Them other dudes? They didn't make it past the door."<br>
+        <b style="color:#FFC83C">JAY:</b> "So all them dates was test runs. Aight. Bet."
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="fightFromStory()">▶ FIGHT</button>
+      </div>
+    </div>
+  </div>
+  <div class="touch-pad">
+    <div class="pad-group pad-dpad">
+      <div class="t-btn" id="padUL">↖</div><div class="t-btn" id="padUp">▲</div><div class="t-btn" id="padUR">↗</div>
+      <div class="t-btn" id="padLeft">◀</div><div></div><div class="t-btn" id="padRight">▶</div>
+      <div class="t-btn" id="padDL">↙</div><div class="t-btn" id="padDown">▼</div><div class="t-btn" id="padDR">↘</div>
+    </div>
+    <div class="pad-group">
+      <div class="t-btn act-k" id="btnKick">△ KICK</div>
+      <div class="t-btn act-t" id="btnTakedown">R1 FIN</div>
+      <div class="t-btn act-d" id="btnParry">L1 PAR</div>
+      <div class="t-btn act-p" id="btnPunch">□ HIT</div>
+      <div class="t-btn act-d" id="btnDodge">✕ DASH</div>
+      <div class="t-btn" id="btnThrow">○ THW</div>
+      <div class="t-btn act-n" id="btnDance">♪ DANCE</div>
+    </div>
+  </div>
+</main>
+
+
+<div class="controls-bar">
+  <span><b>J</b> Punch &nbsp;<b>K</b> Kick &nbsp;<b>L</b> Throw &nbsp;<b>SPACE</b> Dodge &nbsp;<b>S</b> Parry &nbsp;<b>F</b> Dance &nbsp;<b>E</b> Takedown</span>
+  <span id="saveLine">HIGH <b>0</b></span>
+</div>
+
+<script>
+'use strict';
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+const W = 960, H = 544;
+
+const COL = {
+  gold: '#FFC83C', red: '#E63232', cyan: '#00F0FF', pink: '#FF33CC',
+  purple: '#9D4EDD', white: '#FFFFFF', dark: '#06030E'
+};
+
+/* ---------- High score (localStorage, this variant only) ---------- */
+const SAVE_KEY = 'sleezeDiscoTouchHighV1';
+let highScore = 0;
+try { highScore = parseInt(localStorage.getItem(SAVE_KEY) || '0', 10) || 0; } catch (e) {}
+function updateSaveLine() {
+  document.getElementById('saveLine').innerHTML = 'HIGH <b>' + highScore + '</b>';
+}
+function recordHigh() {
+  if (G.score > highScore) {
+    highScore = G.score;
+    try { localStorage.setItem(SAVE_KEY, String(highScore)); } catch (e) {}
+  }
+  updateSaveLine();
+}
+updateSaveLine();
+
+/* ---------- Boss-move unlocks (P4) — persist across sessions ---------- */
+const UNLOCK_KEY = 'sleezeDiscoUnlocksV1';
+let unlocks = { dash: false, spinKick: false };
+try {
+  const u = JSON.parse(localStorage.getItem(UNLOCK_KEY) || '{}');
+  if (u && typeof u === 'object') { unlocks.dash = !!u.dash; unlocks.spinKick = !!u.spinKick; }
+} catch (e) {}
+function saveUnlocks() { try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(unlocks)); } catch (e) {} }
+function syncUnlockList() {
+  const el = document.getElementById('unlockList');
+  if (!el) return;
+  const owned = [];
+  if (unlocks.dash) owned.push('DASH STRIKE — dash through an enemy to hit them (Ch.1 boss)');
+  if (unlocks.spinKick) owned.push('SPINBACK KICK — kicks hit wider and harder (Ch.2 boss)');
+  el.textContent = owned.length ? 'BOSS MOVES OWNED: ' + owned.join(' · ') : 'NO BOSS MOVES YET — BEAT A CHAPTER BOSS TO TAKE ITS MOVE.';
+}
+
+/* ---------- Fans + hub shop (P5) — one save object ----------
+   Key: sleezeDiscoSaveV1 (JSON). Fans are earned in fights (story AND
+   endless, same formula — see endFight): fans = floor(score/100) +
+   2 per KO. Upgrades: hp = times +25 MAX HP bought (repeatable, no
+   cap); tokens = times +1 token slot bought (cap 5, see tokenCap);
+   fever = Faster Fever Gain owned (one-time, x1.5 in addFever);
+   combo = combo string owned (one-time); fits = which jacket tints
+   are owned (40 fans each); fit = the equipped tint ('none', 'gold',
+   'red', 'cyan') — buying a fit never auto-equips it. Everything
+   loads here and applies in beginFight (maxHp, token cap, Fever
+   multiplier, combo string, fit tint). */
+const SHOP_KEY = 'sleezeDiscoSaveV1';
+let shop = { fans: 0, hp: 0, tokens: 0, fever: false, combo: false, fits: { gold: false, red: false, cyan: false }, fit: 'none' };
+try {
+  const s = JSON.parse(localStorage.getItem(SHOP_KEY) || '{}');
+  if (s && typeof s === 'object') {
+    if (typeof s.fans === 'number') shop.fans = Math.max(0, Math.floor(s.fans));
+    if (typeof s.hp === 'number') shop.hp = Math.max(0, Math.floor(s.hp));
+    if (typeof s.tokens === 'number') shop.tokens = Math.max(0, Math.floor(s.tokens));
+    shop.fever = !!s.fever; shop.combo = !!s.combo;
+    if (s.fits && typeof s.fits === 'object') { shop.fits.gold = !!s.fits.gold; shop.fits.red = !!s.fits.red; shop.fits.cyan = !!s.fits.cyan; }
+    if (s.fit === 'gold' || s.fit === 'red' || s.fit === 'cyan') shop.fit = s.fit;
+  }
+} catch (e) {}
+function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) {} }
+/* Token cap: base 3, +1 per slot bought, hard cap 5. The earn rule
+   (1 token per 12 combo) never changes — only the max rises. */
+function tokenCap() { return Math.min(5, 3 + shop.tokens); }
+/* Max HP: base 100, +25 per HP upgrade bought. Fights start full. */
+function maxHpFor() { return 100 + 25 * shop.hp; }
+/* Jacket tints — the same rgba tints bosses already use (ANIM_TINT),
+   no new art. Applied to ANIM_TINT.player in applyFitTint(). */
+const FIT_TINTS = { gold: 'rgba(255,200,60,0.35)', red: 'rgba(230,50,50,0.35)', cyan: 'rgba(0,240,255,0.35)' };
+function applyFitTint() { ANIM_TINT.player = shop.fit !== 'none' ? FIT_TINTS[shop.fit] : null; }
+
+/* ---------- Lab bosses (P4) — original names, one genre each ----------
+   Ch.1 DR. CLIPBOARD, head of door science, funk 100 BPM, Rope Sweep
+   ring, unlocks DASH STRIKE. Ch.2 SUBJECT SEVEN, escaped test subject,
+   house 120 BPM, Triple Tap chain, unlocks SPINBACK KICK. Ch.3 VEX runs
+   the lab, dark disco 140 BPM, Spotlight Blast as before. P6: each
+   chapter runs on one of Sleeze's own tracks (see TRACKS) — the track
+   id lives here so the intro card and the scheduler read the same map. */
+const BOSS_INFO = {
+  1: { name: 'DR. CLIPBOARD', title: 'HEAD OF DOOR SCIENCE', genre: 'FUNK', bpm: 100, track: 'myluva', flavor: 'Clipboards at the door. Lab coats under the jackets. He checks names. He checks vitals.', sig: 'ROPE SWEEP', unlock: 'DASH STRIKE' },
+  2: { name: 'SUBJECT SEVEN', title: 'ESCAPED TEST SUBJECT', genre: 'HOUSE', bpm: 120, track: 'dceased', flavor: 'He got out of the tank. He did not get out of the club.', sig: 'TRIPLE TAP', unlock: 'SPINBACK KICK' },
+  3: { name: 'VEX', title: 'RUNS THE LAB', genre: 'DARK DISCO', bpm: 140, track: 'shittalkin', flavor: 'She set the whole night up. Now she wants the last dance.', sig: 'SPOTLIGHT BLAST', unlock: null }
+};
+
+/* ---------- Latency calibration (fix 5) ---------- */
+const CAL_KEY = 'sleezeDiscoTouchCalV1';
+let calMs = 0;
+try { calMs = parseInt(localStorage.getItem(CAL_KEY) || '0', 10) || 0; } catch (e) {}
+calMs = Math.max(-150, Math.min(150, calMs));
+function persistCal() { try { localStorage.setItem(CAL_KEY, String(calMs)); } catch (e) {} }
+function syncCalUI() {
+  const s = document.getElementById('calSlider'), v = document.getElementById('calVal');
+  if (s) s.value = String(calMs);
+  if (v) v.textContent = (calMs > 0 ? '+' : '') + calMs;
+}
+const calSliderEl = document.getElementById('calSlider');
+if (calSliderEl) calSliderEl.addEventListener('input', function () {
+  calMs = parseInt(calSliderEl.value, 10) || 0;
+  persistCal(); syncCalUI();
+});
+syncCalUI();
+
+/* ---------- Tap-along calibration ---------- */
+const tap = { active: false, taps: [] };
+function setTapStatus(t) {
+  const el = document.getElementById('tapStatus');
+  if (el) el.textContent = t;
+}
+function setTapBtn(t) {
+  const el = document.getElementById('tapBtn');
+  if (el) el.textContent = t;
+}
+/* Tap 8 times on the 120 BPM click. Each tap records the signed
+   offset to the nearest beat on the raw audio clock — no calMs in
+   the measurement, so the average IS the absolute delay. */
+function tapAlong() {
+  initAudio();
+  if (!tap.active) {
+    tap.active = true; tap.taps = [];
+    startMusic(120);
+    setTapBtn('TAP (0/8)');
+    setTapStatus('LISTEN TO THE CLICK — TAP ON EACH BEAT');
+    return;
+  }
+  const now = AC.currentTime;
+  const k = Math.round((now - lastBeatTime) / beatDur);
+  const nearest = lastBeatTime + k * beatDur;
+  tap.taps.push(Math.round((now - nearest) * 1000));
+  if (tap.taps.length >= 8) {
+    const avg = Math.round(tap.taps.reduce((a, b) => a + b, 0) / tap.taps.length);
+    calMs = Math.max(-150, Math.min(150, avg));
+    persistCal(); syncCalUI();
+    stopMusic();
+    tap.active = false;
+    setTapBtn('♪ TAP ALONG');
+    setTapStatus('CALIBRATED: ' + (calMs > 0 ? '+' : '') + calMs + 'ms');
+    setTimeout(() => setTapStatus('TAP 8 TIMES ON THE CLICK TO TUNE THE DELAY'), 2000);
+  } else {
+    setTapBtn('TAP (' + tap.taps.length + '/8)');
+  }
+}
+
+/* ---------- WebAudio Synth Engine ---------- */
+let AC = null, master = null, bpm = 120, beatDur = 0.5, nextBeatTime = 0, beatIndex = 0, lastBeatTime = 0, musicOn = false;
+/* ---------- Soundtrack (P6) — Sleeze's own tracks, synth rebuilds ----------
+   The track list is his catalogue, so it is streamer-safe from day
+   one. The audio stays synth: each track is a BPM preset with its own
+   bass/lead pattern, played by the existing synth engine — no audio
+   files, no licensed recordings. This table REPLACES the old GENRE_PAT
+   (one pattern per chapter genre, P4); there is one pattern system
+   now, and the scheduler reads G.track, never a genre number.
+   Chapter mapping (keeps the P4 BPMs exactly):
+     Ch.1 funk 100  -> MY LUVA      (R&B bounce sits on the funk pocket)
+     Ch.2 house 120 -> DCEASED      (hardest knock of the five, house drive)
+     Ch.3 dark disco 140 -> SHIT TALKIN (the diss record — the final boss
+       gets the hardest track, and its 140 BPM matches the VEX fight)
+   Endless can pick any of the five, or an imported file (see below).
+   Vita: same table, preset BPM per track — no import on the Vita. */
+const TRACKS = {
+  myluva:     { name: 'MY LUVA',     bpm: 100, genre: 'FUNK',       bass: [55, 55, 65.41, 49, 55, 55, 82.41, 73.42], lead: [220, 261.63, 329.63, 392, 329.63, 261.63, 220, 196] },
+  bigscreen:  { name: 'BIG SCREEN',  bpm: 110, genre: 'FUNK',       bass: [55, 49, 55, 65.41, 55, 73.42, 55, 49],       lead: [246.94, 220, 261.63, 293.66, 261.63, 220, 196, 220] },
+  dceased:    { name: 'DCEASED',     bpm: 120, genre: 'HOUSE',      bass: [55, 55, 55, 55, 65.41, 55, 49, 55],          lead: [220, 220, 261.63, 220, 196, 220, 246.94, 220] },
+  foolmeonce: { name: 'FOOL ME ONCE', bpm: 130, genre: 'HOUSE',     bass: [58.27, 58.27, 51.91, 58.27, 65.41, 58.27, 49, 58.27], lead: [233.08, 220, 261.63, 233.08, 196, 220, 246.94, 233.08] },
+  shittalkin: { name: 'SHIT TALKIN', bpm: 140, genre: 'DARK DISCO', bass: [55, 49, 55, 65.41, 55, 49, 82.41, 73.42],    lead: [220, 196, 220, 261.63, 220, 196, 174.61, 196] }
+};
+
+function initAudio() {
+  if (!AC) {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.45; master.connect(AC.destination);
+    // First audio init: seed the delay from the output latency the
+    // device reports (phone + Bluetooth run late) — but only when the
+    // player has never set it by hand. A saved value always wins.
+    let saved = null;
+    try { saved = localStorage.getItem(CAL_KEY); } catch (e) {}
+    if (saved === null && typeof AC.outputLatency === 'number' && isFinite(AC.outputLatency)) {
+      calMs = Math.max(-150, Math.min(150, Math.round(AC.outputLatency * 1000)));
+      persistCal();
+    }
+    syncCalUI();
+  }
+  if (AC.state === 'suspended') AC.resume();
+}
+
+function tone(freq, t, dur, type, vol, slide) {
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
+}
+
+function startMusic(b, useImported) {
+  initAudio(); bpm = b; beatDur = 60 / bpm; beatIndex = 0;
+  nextBeatTime = AC.currentTime + 0.05; lastBeatTime = nextBeatTime - beatDur; musicOn = true;
+  stopImportedSrc();
+  // Imported endless run (P6): the file itself is the backing track —
+  // a looped AudioBufferSourceNode, started on the beat grid, looped
+  // on a whole number of beats so the loop restart stays on the grid.
+  // The synth scheduler's tones are muted for that run (see
+  // scheduleMusic); the beat clock — nextBeatTime / beatIndex / judge
+  // windows — runs exactly as it does on a synth track, so timing,
+  // judgement and the latency slider all behave the same.
+  if (useImported && G.imported && G.imported.buffer) {
+    const src = AC.createBufferSource();
+    src.buffer = G.imported.buffer; src.loop = true;
+    const beats = Math.max(4, Math.floor(G.imported.buffer.duration / beatDur));
+    src.loopStart = 0; src.loopEnd = beats * beatDur;
+    src.connect(master);
+    try { src.start(nextBeatTime); } catch (e) { try { src.start(); } catch (e2) {} }
+    importedSrc = src;
+  }
+}
+/* The looped import source, if one is playing. Stopped whenever the
+   music stops (end screen, title, new fight) so it never plays over
+   the next track. */
+let importedSrc = null;
+function stopImportedSrc() {
+  if (importedSrc) { try { importedSrc.stop(); } catch (e) {} try { importedSrc.disconnect(); } catch (e) {} importedSrc = null; }
+}
+function stopMusic() { musicOn = false; stopImportedSrc(); }
+
+function scheduleMusic() {
+  if (!AC || !musicOn) return;
+  // Tab-out catch-up: if the beat clock fell behind real time, skip
+  // the missed beats entirely — never schedule them all at once.
+  if (nextBeatTime < AC.currentTime) {
+    const skipped = Math.ceil((AC.currentTime - nextBeatTime) / beatDur);
+    nextBeatTime += skipped * beatDur;
+    lastBeatTime = nextBeatTime - beatDur;
+    beatIndex += skipped;
+  }
+  while (nextBeatTime < AC.currentTime + 0.15) {
+    const t = nextBeatTime, i = beatIndex;
+    const pat = G.track || TRACKS.myluva;
+    // Imported run: the file is the music, so the synth tones stay
+    // silent — but the beat clock still advances here, beat by beat,
+    // exactly as on a synth track. Judgement, Rush and the latency
+    // slider all read the same clock either way.
+    if (!importedSrc) {
+      tone(145, t, 0.16, 'sine', 0.6, 42); // Kick
+      tone(pat.bass[i % pat.bass.length], t, beatDur * 0.85, 'sawtooth', 0.16); // Track Bass
+      tone(pat.lead[i % pat.lead.length], t, beatDur * 0.4, 'square', 0.06); // Track Lead
+      // FEVER RUSH: the tempo FEEL gets denser, not faster — extra 16th
+      // hits land inside the same beat grid. beatDur, nextBeatTime and
+      // the judge windows never move, so the audio clock stays exact.
+      if (G.rushT > 0) {
+        tone(190, t + beatDur * 0.25, 0.06, 'square', 0.07, 120);
+        tone(pat.bass[(i + 4) % pat.bass.length], t + beatDur * 0.5, beatDur * 0.3, 'sawtooth', 0.10);
+        tone(190, t + beatDur * 0.75, 0.06, 'square', 0.07, 120);
+      }
+    }
+    lastBeatTime = t; nextBeatTime += beatDur; beatIndex++;
+  }
+}
+
+function beatOffset() {
+  if (!musicOn || !AC) return 999;
+  // calMs: how late the audio the player hears is. Shift "now" back
+  // by it so a press on the heard beat still reads on the beat.
+  const now = AC.currentTime - calMs / 1000;
+  return Math.min(Math.abs(nextBeatTime - now), Math.abs(now - lastBeatTime));
+}
+
+/* Seconds until the next beat at least minAhead seconds out (heard
+   time, so calMs counts). Strikes snap to it; if the next beat is
+   too close to read, the one after it is the target. */
+function timeToBeat(minAhead) {
+  if (!AC || !musicOn) return 0.45;
+  const now = AC.currentTime - calMs / 1000;
+  let t = nextBeatTime;
+  while (t < now + (minAhead || 0)) t += beatDur;
+  return Math.max(0.05, t - now);
+}
+
+/* ---------- BPM detector + MP3/WAV import (P6, WEB ONLY) ----------
+   Detector, written from scratch, no libraries: an onset envelope
+   (frame energy jumps, hop 512) autocorrelated over the lags for
+   80–180 BPM, parabolic-refined around the peak. It runs on the
+   decoded buffer — the same decodeAudioData path the import uses —
+   so a verified number means the real path works. A half-period
+   octave guard: if the half lag scores within 90% of the peak, the
+   faster tempo is the real one (a true 160 BPM click train scores
+   ~0 at the half lag, so the guard never fires on a real double).
+   Returns { bpm, conf } (conf = peak / zero-lag autocorr) or null
+   when the file is too short or has no readable pulse.
+   VITA NOTE: none of this runs on the Vita. There is no file picker
+   and no decode there — the Vita build uses the preset BPM per track
+   in TRACKS, exactly like the story chapters do here. */
+function detectBPM(buf) {
+  if (!buf || !buf.getChannelData) return null;
+  const ch = buf.getChannelData(0);
+  const sr = buf.sampleRate || 44100;
+  const hop = 512;
+  const frames = Math.floor(ch.length / hop);
+  if (frames < 200) return null; // need ~2.3s at 44.1k for a read
+  const energy = new Float32Array(frames);
+  for (let i = 0; i < frames; i++) {
+    let s = 0; const off = i * hop;
+    for (let j = 0; j < hop; j += 4) { const v = ch[off + j]; s += v * v; }
+    energy[i] = s;
+  }
+  const onset = new Float32Array(frames);
+  for (let i = 1; i < frames; i++) onset[i] = Math.max(0, energy[i] - energy[i - 1]);
+  let mean = 0;
+  for (let i = 0; i < frames; i++) mean += onset[i];
+  mean /= frames;
+  for (let i = 0; i < frames; i++) onset[i] -= mean;
+  const frameRate = sr / hop; // frames per second
+  const minLag = Math.max(2, Math.round(60 / 180 * frameRate)); // 180 BPM, fastest
+  const maxLag = Math.round(60 / 80 * frameRate); // 80 BPM, slowest
+  let zeroLag = 0;
+  for (let i = 0; i < frames; i++) zeroLag += onset[i] * onset[i];
+  if (zeroLag <= 0) return null;
+  function ac(lag) {
+    let v = 0;
+    for (let i = lag; i < frames; i++) v += onset[i] * onset[i - lag];
+    return v;
+  }
+  let bestLag = -1, bestVal = -Infinity;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    const v = ac(lag);
+    if (v > bestVal) { bestVal = v; bestLag = lag; }
+  }
+  if (bestLag < 0 || bestVal <= 0) return null;
+  // Octave guard (see header): a half lag scoring near the peak means
+  // the peak was the double period, not the beat.
+  const half = Math.floor(bestLag / 2);
+  if (half >= minLag && ac(half) >= 0.9 * bestVal) { bestLag = half; bestVal = ac(half); }
+  // Parabolic refine around the peak lag.
+  let lagRef = bestLag;
+  if (bestLag > minLag && bestLag < maxLag) {
+    const v0 = ac(bestLag - 1), v1 = bestVal, v2 = ac(bestLag + 1);
+    const denom = v0 - 2 * v1 + v2;
+    if (denom !== 0) {
+      const shift = 0.5 * (v0 - v2) / denom;
+      if (isFinite(shift)) lagRef = bestLag + Math.max(-1, Math.min(1, shift));
+    }
+  }
+  const bpm = 60 * frameRate / lagRef;
+  if (!isFinite(bpm) || bpm < 80 || bpm > 180) return null;
+  return { bpm: Math.round(bpm * 10) / 10, conf: bestVal / zeroLag };
+}
+
+/* Import flow: pick a file -> decode -> detect -> show the BPM with a
+   confirm button -> endless runs at that BPM with the file looping as
+   the backing track (see startMusic). A bad file never crashes the
+   game and never starts a fight at a wrong BPM: the error prints on
+   the mode screen and the synth tracks stay ready. Picking the same
+   file twice still fires (the input value resets). */
+let pendingImport = null; // { name, bpm, buffer, conf } — confirmed by the player
+async function onImportFile(ev) {
+  const f = ev.target.files && ev.target.files[0];
+  const st = document.getElementById('importStatus');
+  const cf = document.getElementById('importConfirm');
+  if (!f) return;
+  if (st) st.textContent = 'READING ' + f.name.toUpperCase() + '…';
+  if (cf) cf.classList.add('hidden');
+  pendingImport = null;
+  try {
+    initAudio();
+    const ab = await f.arrayBuffer();
+    const decoded = await AC.decodeAudioData(ab);
+    const res = detectBPM(decoded);
+    if (!res) throw new Error('no readable beat');
+    pendingImport = { name: f.name, bpm: res.bpm, buffer: decoded, conf: res.conf };
+    if (st) st.textContent = 'DETECTED: ' + res.bpm + ' BPM — ' + f.name.toUpperCase() + ' (READ ' + Math.round(res.conf * 100) + '%)';
+    if (cf) { cf.classList.remove('hidden'); cf.textContent = '▶ PLAY ENDLESS AT ' + res.bpm + ' BPM'; }
+  } catch (err) {
+    if (st) st.textContent = 'COULD NOT READ THAT FILE — TRY AN MP3 OR WAV. THE SYNTH TRACKS STILL WORK.';
+    if (cf) cf.classList.add('hidden');
+  }
+  ev.target.value = '';
+}
+/* Confirming an import starts endless at the detected BPM with the
+   file looping. The beat clock runs at the detected BPM and the
+   latency slider still applies — same as a synth track (see
+   beatOffset). No BPM ramp on wave clears for an imported run: the
+   file's tempo is the tempo. */
+function confirmImport() {
+  if (!pendingImport) return;
+  G.imported = { name: pendingImport.name, bpm: pendingImport.bpm, buffer: pendingImport.buffer };
+  G.track = { name: 'YOUR TRACK', bpm: pendingImport.bpm, genre: 'IMPORT', bass: TRACKS.dceased.bass, lead: TRACKS.dceased.lead };
+  G.endlessTrackId = null;
+  lastFight = { mode: 'inf', ch: 1, imported: true }; G.mode = 'inf'; G.wave = 1; G.genre = 2;
+  G.spawnQueue = ['stan', 'stan', 'charger', 'bruiser'];
+  beginFight(pendingImport.bpm, 'ENDLESS DISCO — YOUR TRACK · ' + pendingImport.bpm + ' BPM');
+}
+
+/* Move a value toward a target by at most step — the accel/decel core. */
+function approach(v, target, step) {
+  if (v < target) return Math.min(target, v + step);
+  if (v > target) return Math.max(target, v - step);
+  return v;
+}
+/* Parry-press judgement (kept): a parry is a reaction, so it is
+   judged the instant it is pressed. MISS survives ONLY here — an
+   off-beat parry press pays +3 Fever instead of +200. Player
+   attacks never see MISS any more (see judgeFromOffset). */
+function judge() {
+  const off = beatOffset();
+  if (off <= 0.065) return { name: 'PERFECT!', mult: 1.5, color: COL.gold };
+  if (off <= 0.13) return { name: 'GOOD', mult: 1.1, color: COL.cyan };
+  return { name: 'MISS', mult: 0.6, color: '#8E94A5' };
+}
+/* Attack judgement (P2): off-beat swings snap to the next beat and
+   still land at full damage — there is no MISS tier for attacks.
+   PERFECT +50% damage, GOOD +10%, anything further off is a plain
+   HIT at 1.0x. Only getting hit breaks the combo now. */
+function judgeFromOffset(off) {
+  if (off <= 0.065) return { name: 'PERFECT!', mult: 1.5, color: COL.gold };
+  if (off <= 0.13) return { name: 'GOOD', mult: 1.1, color: COL.cyan };
+  return { name: 'HIT', mult: 1.0, color: '#FFFFFF' };
+}
+
+/* ---------- Style rank (P2) ----------
+   Points: PERFECT +3, GOOD +1, plain HIT +0, counter +4, clean
+   parry +2, takedown +2. Getting hit cuts the style by 25%.
+   Variety: every distinct move type used in the fight (punch, kick,
+   throw, dodge, parry, counter, takedown, dance — 8 max) adds +10% to the
+   effective style, so effective = points x (1 + 0.1 x moves used).
+   Rank thresholds (on effective style): D <20, C 20, B 40, A 70,
+   S 110, SLEEZE 160. Rank multiplies ALL score: D 1.0x, C 1.1x,
+   B 1.2x, A 1.3x, S 1.4x, SLEEZE 1.5x — every point goes through
+   gainScore() so the multiplier is never skipped. */
+function styleEff() { return G.style * (1 + 0.1 * G.styleMoves.size); }
+function styleRank() {
+  const s = styleEff();
+  if (s >= 160) return 'SLEEZE';
+  if (s >= 110) return 'S';
+  if (s >= 70) return 'A';
+  if (s >= 40) return 'B';
+  if (s >= 20) return 'C';
+  return 'D';
+}
+const RANK_MULT = { D: 1.0, C: 1.1, B: 1.2, A: 1.3, S: 1.4, SLEEZE: 1.5 };
+const RANK_COL = { D: '#8E94A5', C: COL.cyan, B: COL.purple, A: COL.pink, S: COL.gold, SLEEZE: COL.gold };
+function rankMult() { return RANK_MULT[styleRank()]; }
+function gainScore(n) { const g = Math.round(n * rankMult()); G.score += g; return g; }
+
+/* ---------- Fever (P3) — the old Takedown meter, renamed and reworked
+   FEVER GAIN TABLE (every gain in the game, one place):
+     PERFECT hit  +12   |  GOOD hit      +7   |  plain HIT (snapped off-beat) +0
+     dance move   +8    |  counter hit   +10  |  clean parry (PERFECT/GOOD) +15
+     off-beat parry +3  |  KO bonus      +6   |  finisher hits +0 (they spend, not build)
+   At 100 Fever, FEVER RUSH starts AUTOMATICALLY (never the old
+   meter-100 finisher — that path is deleted): 8 beats, attacks 30%
+   faster, denser drums, wild lights, Fever drains 100 -> 0 across
+   the 8 beats, then refills normally. No re-trigger while a Rush runs,
+   and no Fever gains land during a Rush — the drain owns the meter.
+   P5 shop: FASTER FEVER GAIN (one-time, 60 fans) multiplies every
+   gain below by x1.5, rounded — PERFECT +18, GOOD +11, dance +12,
+   counter +15, clean parry +23, off-beat parry +5, KO +9. The
+   multiplier lives in addFever, the single funnel, so every source
+   scales and none is missed. */
+const FEVER = { PERFECT: 12, GOOD: 7, HIT: 0, DANCE: 8, COUNTER: 10, PARRY: 15, PARRY_OFF: 3, KO: 6 };
+function addFever(n) {
+  if (G.rushT > 0) return; // drain owns the meter during a Rush
+  if (shop.fever) n = Math.round(n * 1.5); // P5 Faster Fever Gain
+  player.fever = Math.min(100, player.fever + n);
+  if (player.fever >= 100) startFeverRush();
+}
+function startFeverRush() {
+  G.rushT = 8; // 8 BEATS, not 8 seconds — it rides the music
+  G.banner = 'FEVER RUSH!'; G.bannerT = 2;
+  tone(880, AC ? AC.currentTime : 0, 0.15, 'square', 0.18, 1320);
+}
+
+/* ---------- Game State ---------- */
+const G = { state: 'title', mode: 'story', chapter: 1, genre: 1, pendingCh: 1, wave: 1, score: 0, combo: 0, maxCombo: 0, perfects: 0, kos: 0, lastFans: 0, style: 0, styleMoves: new Set(), shake: 0, time: 0, spawnQueue: [], spawnTimer: 0, banner: '', bannerT: 0, hitStop: 0, speedMul: 1, endlessBpm: 120, paused: false, rushT: 0, tokens: 0, track: null, imported: null, endlessTrackId: 'dceased' };
+const player = { x: 240, y: 410, hp: 100, maxHp: 100, fever: 0, facing: 1, dodgeT: 0, parryT: 0, atkT: 0, atkKind: '', hurtT: 0, parryCd: 0, dodgeCd: 0, parryJudge: null, vx: 0, vy: 0, walkDist: 0, lungeVx: 0, dashVx: 0, dashDir: 1, ghostT: 0, pendingHit: null };
+let enemies = [], slashes = [], floats = [], particles = [], projectiles = [], rings = [], ghosts = [], impacts = [], lastFight = { mode: 'story', ch: 1 };
+
+/* Tab-out pause: freeze the sim and the scheduler until the player
+   taps to come back. Resume re-anchors the beat clock so no burst
+   of missed notes can fire. */
+function pauseGame() {
+  if (G.state !== 'fight' || G.paused) return;
+  G.paused = true;
+  const ov = document.getElementById('pauseOverlay');
+  if (ov) ov.classList.remove('hidden');
+}
+function resumeGame() {
+  if (!G.paused) return;
+  initAudio();
+  G.paused = false;
+  if (AC) { nextBeatTime = AC.currentTime + 0.1; lastBeatTime = nextBeatTime - beatDur; }
+  const ov = document.getElementById('pauseOverlay');
+  if (ov) ov.classList.add('hidden');
+}
+
+function showScreen(name) {
+  ['title', 'mode', 'howto', 'end', 'intro', 'story', 'hub'].forEach(n => document.getElementById('scr-' + n).classList.toggle('hidden', n !== name));
+  if (name === 'howto') syncUnlockList();
+  if (name === 'title') { stopMusic(); G.state = 'title'; }
+  if (tap.active && name !== 'title') { tap.active = false; tap.taps = []; stopMusic(); setTapBtn('♪ TAP ALONG'); setTapStatus('TAP 8 TIMES ON THE CLICK TO TUNE THE DELAY'); }
+}
+
+/* ---------- Hub + shop (P5) ----------
+   The hub is a DOM screen like the others. openHub remembers where
+   it was opened from ('title' or 'end'); CONTINUE goes back there,
+   TITLE always goes to the title screen. From the title both land on
+   the title screen — the hub is a side room off the title, not a
+   fight, so there is no deeper place to continue to. */
+let hubFrom = 'title';
+function openHub(from) { hubFrom = from || 'title'; renderHub(); showScreen('hub'); }
+function closeHub() { showScreen(hubFrom === 'end' ? 'end' : 'title'); }
+
+/* Shop table (P5 brief, exact costs):
+     +25 MAX HP            50 fans  repeatable, no cap — fights start full
+     +1 TAKEDOWN TOKEN SLOT 80 fans repeatable — token cap 3 -> 4 -> 5, hard cap 5
+     FASTER FEVER GAIN     60 fans  one-time — all Fever gains x1.5 (see addFever)
+     NEW COMBO STRING     100 fans  one-time — punch, punch, kick ender (see executeAttack)
+     FIT — GOLD / RED / CYAN JACKET  40 fans each — jacket tint, buy then equip */
+const SHOP_ITEMS = [
+  { id: 'hp', name: '+25 MAX HP', desc: 'Raise max HP by 25. Fights start at full HP. Stacks — buy it as many times as you like.', cost: 50, repeat: true },
+  { id: 'tokens', name: '+1 TAKEDOWN TOKEN SLOT', desc: 'Raise the token cap by 1 (3 → 4 → 5). Earn rule stays 1 token per 12 combo. Hard cap 5.', cost: 80, repeat: true },
+  { id: 'fever', name: 'FASTER FEVER GAIN', desc: 'All Fever gains ×1.5 — PERFECT +18, GOOD +11, dance +12, clean parry +23. One-time.', cost: 60, repeat: false },
+  { id: 'combo', name: 'NEW COMBO STRING', desc: 'Punch, punch, kick — the kick lands as a finisher-grade string ender, 1.5× damage with the spinback clip. One-time.', cost: 100, repeat: false }
+];
+const FIT_ITEMS = [
+  { id: 'gold', name: 'FIT — GOLD JACKET', desc: 'Gold jacket tint for Jay. Buy it, then equip it — one fit at a time.', cost: 40 },
+  { id: 'red', name: 'FIT — RED JACKET', desc: 'Red jacket tint for Jay. Buy it, then equip it — one fit at a time.', cost: 40 },
+  { id: 'cyan', name: 'FIT — CYAN JACKET', desc: 'Cyan jacket tint for Jay. Buy it, then equip it — one fit at a time.', cost: 40 }
+];
+function shopOwned(item) {
+  if (item.id === 'hp') return shop.hp;
+  if (item.id === 'tokens') return shop.tokens;
+  if (item.id === 'fever') return shop.fever;
+  if (item.id === 'combo') return shop.combo;
+  return false;
+}
+function renderHub() {
+  const bal = document.getElementById('hubBal');
+  if (bal) bal.innerHTML = '<span class="hub-stat">FANS: <b>' + shop.fans + '</b></span> &nbsp;·&nbsp; <span class="hub-stat">MAX HP <b>' + maxHpFor() + '</b></span> &nbsp;·&nbsp; <span class="hub-stat">TOKEN SLOTS <b>' + tokenCap() + '</b></span>';
+  const list = document.getElementById('shopList');
+  if (!list) return;
+  let html = '';
+  SHOP_ITEMS.forEach(function (it) {
+    const owned = shopOwned(it);
+    const maxed = it.id === 'tokens' && tokenCap() >= 5;
+    let btn, dis = '';
+    if (!it.repeat && owned) { btn = 'OWNED'; dis = 'disabled'; }
+    else if (maxed) { btn = 'MAXED'; dis = 'disabled'; }
+    else {
+      btn = 'BUY' + (it.repeat && owned > 0 ? ' ×' + (owned + 1) : '');
+      if (shop.fans < it.cost) dis = 'disabled';
+    }
+    html += '<div class="shop-row"><div class="s-info"><div class="s-name">' + it.name + '</div><div class="s-desc">' + it.desc + '</div></div><div class="s-cost">' + it.cost + ' FANS</div><button class="btn" ' + dis + ' onclick="buyShop(\'' + it.id + '\')">' + btn + '</button></div>';
+  });
+  FIT_ITEMS.forEach(function (it) {
+    const owned = shop.fits[it.id];
+    const equipped = shop.fit === it.id;
+    let btn, dis = '', cls = '';
+    if (equipped) { btn = 'EQUIPPED'; dis = 'disabled'; cls = ' equipped'; }
+    else if (owned) { btn = 'EQUIP'; }
+    else { btn = 'BUY'; if (shop.fans < it.cost) dis = 'disabled'; }
+    html += '<div class="shop-row"><div class="s-info"><div class="s-name">' + it.name + '</div><div class="s-desc">' + it.desc + '</div></div><div class="s-cost">' + it.cost + ' FANS</div><button class="btn' + cls + '" ' + dis + ' onclick="buyShop(\'fit:' + it.id + '\')">' + btn + '</button></div>';
+  });
+  list.innerHTML = html;
+}
+/* Buying with too few fans does nothing: the button is disabled in
+   the hub, and this guard is the backstop — no fans are ever deducted
+   on a failed buy. */
+function buyShop(id) {
+  if (id.indexOf('fit:') === 0) {
+    const fit = id.slice(4);
+    if (shop.fits[fit]) { equipFit(fit); return; } // owned already — the button is EQUIP
+    if (shop.fans < 40) return;
+    shop.fans -= 40; shop.fits[fit] = true; saveShop(); renderHub();
+    return;
+  }
+  const it = SHOP_ITEMS.find(function (x) { return x.id === id; });
+  if (!it) return;
+  if (!it.repeat && shopOwned(it)) return;
+  if (it.id === 'tokens' && tokenCap() >= 5) return;
+  if (shop.fans < it.cost) return;
+  shop.fans -= it.cost;
+  if (it.id === 'hp') shop.hp++;
+  else if (it.id === 'tokens') shop.tokens++;
+  else if (it.id === 'fever') shop.fever = true;
+  else if (it.id === 'combo') shop.combo = true;
+  saveShop(); renderHub();
+}
+/* Equipping is free and never buys — only owned fits can be equipped,
+   one at a time. Buying a fit does not equip it (see buyShop). */
+function equipFit(fit) {
+  if (!shop.fits[fit]) return;
+  shop.fit = fit; applyFitTint(); saveShop(); renderHub();
+}
+
+/* Chapter flow (P4): mode select -> intro card -> (Ch.3 story exchange)
+   -> beginFight. The boss is the final spawn in the chapter queue. */
+function startStory(ch) {
+  lastFight = { mode: 'story', ch }; G.mode = 'story'; G.chapter = ch; G.pendingCh = ch;
+  const b = BOSS_INFO[ch];
+  const tr = TRACKS[b.track];
+  document.getElementById('introTag').textContent = 'CHAPTER ' + ch + ' — ' + b.genre + ' · ' + b.bpm + ' BPM';
+  document.getElementById('introName').textContent = b.name;
+  document.getElementById('introTitle').textContent = b.title;
+  document.getElementById('introTrack').textContent = 'TRACK: ' + tr.name + ' · ' + tr.bpm + ' BPM · ' + tr.genre;
+  document.getElementById('introFlavor').textContent = b.flavor + '  SIGNATURE: ' + b.sig + '.';
+  showScreen('intro');
+}
+function fightFromIntro() {
+  // Ch.3 runs the story exchange between the intro card and the fight.
+  if (G.pendingCh === 3) { showScreen('story'); return; }
+  beginChapter(G.pendingCh);
+}
+function fightFromStory() { beginChapter(3); }
+function beginChapter(ch) {
+  G.genre = ch;
+  // Story chapters are synth — an imported endless run never leaks
+  // its file into a story fight. The chapter's track comes from
+  // BOSS_INFO (P6 map: Ch.1 MY LUVA, Ch.2 DCEASED, Ch.3 SHIT TALKIN).
+  G.imported = null;
+  G.track = TRACKS[BOSS_INFO[ch].track];
+  G.spawnQueue = ch === 1 ? ['stan','stan','charger','stan','stan','boss1'] : ch === 2 ? ['charger','stan','bruiser','charger','bruiser','boss2'] : ['stan','charger','vex'];
+  beginFight(BOSS_INFO[ch].bpm, ch === 3 ? 'VEX — THE FINAL TEST' : 'CHAPTER ' + ch);
+}
+
+/* Endless with a picked catalogue track (P6 mode-screen picker). The
+   track's BPM is the fight's BPM; its patterns run the scheduler.
+   Default endless (retry, old callers) is DCEASED at 120 BPM — the
+   same tempo endless always ran at. */
+function startInfiniteTrack(id) {
+  const t = TRACKS[id] || TRACKS.dceased;
+  G.endlessTrackId = id in TRACKS ? id : 'dceased';
+  G.imported = null;
+  G.track = t;
+  lastFight = { mode: 'inf', ch: 1, track: G.endlessTrackId }; G.mode = 'inf'; G.wave = 1;
+  G.genre = t.genre === 'FUNK' ? 1 : t.genre === 'HOUSE' ? 2 : 3;
+  G.spawnQueue = ['stan','stan','charger','bruiser'];
+  beginFight(t.bpm, 'ENDLESS DISCO — ' + t.name + ' · ' + t.bpm + ' BPM');
+}
+
+function startInfinite() { startInfiniteTrack('dceased'); }
+
+function retryFight() {
+  if (lastFight.mode === 'story') { startStory(lastFight.ch); return; }
+  // Imported endless, same session: the decoded buffer is still in
+  // memory, so retry re-runs it at the detected BPM without a re-pick.
+  if (lastFight.imported && G.imported) {
+    G.mode = 'inf'; G.wave = 1; G.genre = 2;
+    G.spawnQueue = ['stan', 'stan', 'charger', 'bruiser'];
+    beginFight(G.imported.bpm, 'ENDLESS DISCO — YOUR TRACK · ' + G.imported.bpm + ' BPM');
+    return;
+  }
+  startInfiniteTrack(lastFight.track || 'dceased');
+}
+
+function beginFight(b, title) {
+  showScreen('none'); startMusic(b, !!G.imported);
+  if (!G.track) G.track = TRACKS.myluva;
+  // P5: max HP comes from the shop (100 + 25 per HP upgrade) and the
+  // fight starts at full HP. Buying HP never heals mid-fight — the
+  // next fight is where the bigger bar shows up.
+  Object.assign(player, { x: 240, y: 410, hp: maxHpFor(), maxHp: maxHpFor(), fever: 0, facing: 1, dodgeT: 0, parryT: 0, atkT: 0, hurtT: 0, parryCd: 0, dodgeCd: 0, parryJudge: null, vx: 0, vy: 0, walkDist: 0, lungeVx: 0, dashVx: 0, dashDir: 1, ghostT: 0, pendingHit: null, dashHitDone: false });
+  G.paused = false;
+  tap.active = false; tap.taps = [];
+  const ov0 = document.getElementById('pauseOverlay');
+  if (ov0) ov0.classList.add('hidden');
+  enemies = []; slashes = []; floats = []; particles = []; projectiles = []; rings = []; ghosts = []; impacts = [];
+  G.speedMul = 1; G.endlessBpm = G.imported ? G.imported.bpm : 120;
+  G.score = 0; G.combo = 0; G.maxCombo = 0; G.perfects = 0; G.kos = 0; G.lastFans = 0; G.style = 0; G.styleMoves = new Set(); pendingAction = null; atkHist = []; G.state = 'fight'; G.spawnTimer = 0.5; G.danceT = 0; G.danced = false; G.rushT = 0; G.tokens = 0; corpses = []; setMove('getup', 1.4);
+  G.banner = title; G.bannerT = 2.2;
+}
+
+function spawnEnemy(type) {
+  const stats = {
+    stan:    { hp: 35,  spd: 65,  dmg: 8,  col: COL.cyan,   w: 44, h: 185, name: 'BOUNCER' },
+    charger: { hp: 45,  spd: 95,  dmg: 14, col: COL.red,    w: 46, h: 190, name: 'RUSHER' },
+    bruiser: { hp: 95,  spd: 42,  dmg: 18, col: COL.purple, w: 60, h: 225, name: 'HEAVY' },
+    boss1:   { hp: 140, spd: 55,  dmg: 14, col: COL.gold,   w: 56, h: 210, name: 'DR. CLIPBOARD' },
+    boss2:   { hp: 180, spd: 70,  dmg: 16, col: COL.pink,   w: 58, h: 215, name: 'SUBJECT SEVEN' },
+    vex:     { hp: 280, spd: 60,  dmg: 16, col: COL.pink,   w: 54, h: 250, name: 'VEX' }
+  }[type];
+  enemies.push({ type, x: 920, y: 360 + Math.random() * 90, hp: stats.hp, maxHp: stats.hp, spd: stats.spd * (G.speedMul || 1), dmg: stats.dmg, col: stats.col, w: stats.w, h: stats.h, name: stats.name, windup: 0, stunT: 0, flashT: 0, state: 'chase', stateT: 0, windupMax: 0.7 + Math.random() * 0.3, blastT: 8, blastPhase: 0, blastAnnounced: false, sigT: 7, sigAnnounced: false, chain: 0, chainArmed: false, dead: false, vx: 0, vy: 0, walkDist: 0, kvx: 0, facing: -1 });
+  // A boss walks in with its name and its signature on the banner.
+  if (type === 'boss1' || type === 'boss2') {
+    G.banner = stats.name + ': ' + (type === 'boss1' ? 'ROPE SWEEP' : 'TRIPLE TAP'); G.bannerT = 2.5;
+  }
+}
+
+/* ---------- Combat Actions ---------- */
+function addFloat(x, y, txt, col) {
+  // Keep the text on screen: fights drift to the right edge, and a
+  // float spawned past x~890 (TOKEN +1, SMASH -65!, PERFECT!) printed
+  // half off the canvas. Centered 16px text needs ~70px of margin.
+  x = Math.max(70, Math.min(890, x));
+  // Stack simultaneous floats (multi-KO takedowns) so they never print
+  // on one line — cosmetic only, gameplay untouched. Collision window
+  // matches the text width (~110px at 16px bold monospace), not the
+  // 70px used in round one, which still let neighbouring floats overlap.
+  var fy = y, moved = true;
+  while (moved) {
+    moved = false;
+    floats.forEach(function (f) {
+      if (Math.abs(f.x - x) < 110 && Math.abs(f.y - fy) < 20) { fy += 22; moved = true; }
+    });
+  }
+  // Banner pill is opaque and drawn last — a float rising behind it
+  // would lose its first letters. Rest it just below the pill instead.
+  if (G.bannerT > 0 && x > 20 && x < 940 && fy < 168) fy = 168;
+  floats.push({ x: x, y: fy, txt: txt, col: col, t: 0 });
+}
+function burst(x, y, col, n) {
+  for (let i = 0; i < n; i++) particles.push({ x, y, vx: (Math.random()-0.5)*360, vy: (Math.random()-0.8)*280, col, t: 0, life: 0.4 + Math.random()*0.25 });
+}
+
+/* One place for every hit that lands — melee, throw, takedown all pay
+   the same way: score + combo + Fever on the beat, and a KO bonus
+   when the hit finishes the enemy. P2: there is no MISS on attacks
+   any more — every landed hit builds the combo (only getting hit
+   breaks it), PERFECT pays +3 style, GOOD +1, and all score runs
+   through gainScore() so the style-rank multiplier applies. */
+let corpses = [];
+function applyHit(e, baseDmg, j, o) {
+  o = o || {};
+  if (!e || e.dead || e.hp <= 0) return false;
+  const dmg = Math.round(baseDmg * j.mult);
+  e.hp -= dmg; e.flashT = 0.12;
+  // Knockback is a velocity arc, not a teleport: the enemy slides back
+  // over ~0.25s and the baked shadow stays on the floor.
+  if (o.knock) e.kvx = (o.knock / 18) * 260;
+  G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
+  if (j.name === 'PERFECT!' && o.perfect !== false) G.perfects++;
+  if (j.name === 'PERFECT!') G.style += 3;
+  else if (j.name === 'GOOD') G.style += 1;
+  gainScore(dmg * (1 + Math.floor(G.combo / 5)));
+  // Fever pays per the P3 table: PERFECT +12, GOOD +7, plain HIT +0,
+  // counter +10. Finisher hits pass fever: false and build nothing.
+  if (o.fever !== false) {
+    let fg = 0;
+    if (j.name === 'PERFECT!') fg = FEVER.PERFECT;
+    else if (j.name === 'GOOD') fg = FEVER.GOOD;
+    else if (j.name === 'COUNTER') fg = FEVER.COUNTER;
+    if (fg > 0) addFever(fg);
+  }
+  // Takedown tokens: every 12 combo earns 1 token, up to the cap
+  // (base 3, +1 per slot bought in the hub, hard cap 5 — see
+  // tokenCap). Combo only climbs by 1 per hit, so the % check fires
+  // exactly at 12 / 24 / 36.
+  if (G.combo % 12 === 0 && G.tokens < tokenCap()) {
+    G.tokens++;
+    addFloat(e.x, e.y - e.h - 54, '★ TOKEN +1', COL.gold);
+  }
+  addFloat(e.x, e.y - e.h - 10, o.floatText || (j.name + ' -' + dmg), j.color);
+  burst(e.x, e.y - 60, j.color, j.name === 'PERFECT!' ? 16 : 8);
+  // Impact ring on the beat — expands and fades over 1 beat. Heavy
+  // hits (kick / takedown / KO) get a bigger ring.
+  const heavy = !!o.heavy || j.name === 'TAKEDOWN';
+  impacts.push({ x: e.x, y: e.y - 60, t: 0, dur: beatDur, maxR: heavy ? 70 : 46, col: j.color });
+  // Hit-stop on EVERY landed hit: 40ms base, 80ms on PERFECT, kick,
+  // takedown and KO. The freeze in update() is the mechanism.
+  let hs = 0.04;
+  if (j.name === 'PERFECT!' || heavy) hs = 0.08;
+  G.hitStop = Math.max(G.hitStop, hs);
+  if (j.name === 'PERFECT!') G.shake = Math.max(G.shake, 7);
+  if (o.heavy) G.shake = Math.max(G.shake, 10);
+  if (e.hp <= 0 && !e.dead) {
+    e.dead = true;
+    G.kos++; // P5: per-fight KO counter — fans pay 2 per KO (see endFight)
+    corpses.push({ type: e.type, x: e.x, y: e.y, dir: e.facing || -1, t: 0 });
+    const koGain = gainScore(100); addFever(FEVER.KO);
+    G.hitStop = Math.max(G.hitStop, 0.08); G.shake = Math.max(G.shake, 12);
+    addFloat(e.x, e.y - e.h - 32, 'KO +' + koGain, COL.gold);
+  }
+  return true;
+}
+
+function endFight(won) {
+  if (G.state === 'end') return; // one payout per fight — a second killing blow in the same frame must not pay fans twice
+  G.state = 'end'; stopMusic();
+  pendingAction = null; player.pendingHit = null;
+  // P5 fans: fans = floor(score/100) + 2 per KO, story AND endless,
+  // win AND loss — the score and the KOs are what the fight earned.
+  // Paid once here, added to the persisted balance, shown on the end
+  // screen and in the hub.
+  const fansEarned = Math.floor(G.score / 100) + 2 * G.kos;
+  G.lastFans = fansEarned;
+  shop.fans += fansEarned; saveShop();
+  if (won) setMove('hiphop', beatDur * 8, { loop: true }); else setMove('knock', 1.2, { hold: true });
+  if (won) {
+    document.getElementById('endTag').textContent = 'STAGE CLEARED';
+    document.getElementById('endTitle').textContent = 'CROWD CONQUERED';
+    document.getElementById('resultsBox').innerHTML = `SCORE: <b>${G.score}</b> &nbsp;|&nbsp; MAX COMBO: <b>${G.maxCombo}x</b> &nbsp;|&nbsp; PERFECT HITS: <b>${G.perfects}</b><br>STYLE: <b>${styleRank()} (${Math.floor(styleEff())} PTS · ${G.styleMoves.size}/8 MOVES)</b><br>FANS EARNED: <b>+${fansEarned}</b> &nbsp;|&nbsp; FAN BALANCE: <b>${shop.fans}</b>`;
+    document.getElementById('btnNext').classList.toggle('hidden', !(G.mode === 'story' && G.chapter < 3));
+  } else {
+    document.getElementById('endTag').textContent = 'BEAT DROPPED';
+    document.getElementById('endTitle').textContent = 'KNOCKED OUT';
+    document.getElementById('resultsBox').innerHTML = `FINAL SCORE: <b>${G.score}</b> &nbsp;|&nbsp; MAX COMBO: <b>${G.maxCombo}x</b><br>STYLE: <b>${styleRank()} (${Math.floor(styleEff())} PTS · ${G.styleMoves.size}/8 MOVES)</b><br>FANS EARNED: <b>+${fansEarned}</b> &nbsp;|&nbsp; FAN BALANCE: <b>${shop.fans}</b>`;
+    document.getElementById('btnNext').classList.add('hidden');
+  }
+  // P4 unlocks: beating a chapter boss hands over its signature move.
+  // The banner lives on the end screen; the move works from the next
+  // fight on (endless and replays included) and persists in localStorage.
+  let granted = null;
+  if (won && G.mode === 'story') {
+    if (G.chapter === 1 && !unlocks.dash) { unlocks.dash = true; granted = 'DASH STRIKE'; }
+    else if (G.chapter === 2 && !unlocks.spinKick) { unlocks.spinKick = true; granted = 'SPINBACK KICK'; }
+    if (granted) saveUnlocks();
+  }
+  const ul = document.getElementById('unlockLine');
+  if (ul) {
+    if (granted) { ul.textContent = '★ UNLOCKED: ' + granted + ' ★'; ul.classList.remove('hidden'); }
+    else ul.classList.add('hidden');
+  }
+  recordHigh();
+  showScreen('end');
+}
+
+function nextChapter() {
+  if (G.mode === 'story' && G.chapter < 3) startStory(G.chapter + 1);
+}
+
+/* An enemy strike lands: parry it (paid by the beat), dodge it, or eat it. */
+function resolveStrike(e) {
+  // Range check at strike time: walk away during the windup and the
+  // strike whiffs — dash and parry are no longer the only outs.
+  const dist = Math.hypot(player.x - e.x, player.y - e.y);
+  if (dist > 90) {
+    addFloat(e.x, e.y - e.h - 15, 'WHIFF', '#8E94A5');
+    return;
+  }
+  if (player.parryT > 0) {
+    e.stunT = 1.6;
+    // The parry pays on the beat the player pressed, not the beat the
+    // enemy's strike happened to land on. MISS still exists as a
+    // parry-press judgement only (see judge()).
+    const j = player.parryJudge || judge();
+    player.parryJudge = null;
+    if (j.name === 'MISS') {
+      addFever(FEVER.PARRY_OFF);
+      addFloat(e.x, e.y - e.h - 15, 'PARRIED (OFF-BEAT) +3', COL.cyan);
+    } else {
+      const pg = gainScore(200); addFever(FEVER.PARRY);
+      G.style += 2;
+      addFloat(e.x, e.y - e.h - 15, 'PARRIED! +' + pg, COL.cyan);
+    }
+    burst(e.x, e.y - 60, COL.cyan, 15);
+    return;
+  }
+  if (player.dodgeT > 0) return;
+  player.hp -= e.dmg; player.hurtT = 0.25; G.combo = 0; G.style *= 0.75; G.shake = 9;
+  setMove('hit', 0.35); e.tauntT = 1.2;
+  addFloat(player.x, player.y - 130, '-' + e.dmg, COL.red);
+  addFloat(player.x, player.y - 152, 'STYLE -25%', '#8E94A5');
+  if (player.hp <= 0) endFight(false);
+}
+
+/* VEX only: Spotlight Blast — a gold shockwave ring. Dodge through it
+   or parry it (stuns her); standing in it costs 20 HP. */
+function startBlast(e) {
+  e.state = 'blast'; e.stateT = timeToBeat(0.25); e.blastT = 8;
+  if (!e.blastAnnounced) {
+    e.blastAnnounced = true;
+    G.banner = 'VEX: SPOTLIGHT BLAST — DODGE OR PARRY'; G.bannerT = 2;
+  }
+}
+function fireBlast(e) {
+  rings.push({ cx: e.x, cy: e.y - 60, r: 0, maxR: 420, t: 0, dur: 0.7, dmg: 20, done: false, owner: e });
+  e.state = 'recover'; e.stateT = 0.4; e.windup = 0;
+}
+
+/* DR. CLIPBOARD only: Rope Sweep — a smaller, faster shockwave ring
+   than the VEX blast. Same ring system, same dodge-or-parry answer. */
+function startSweep(e) {
+  e.state = 'sweep'; e.stateT = timeToBeat(0.25);
+  if (!e.sigAnnounced) {
+    e.sigAnnounced = true;
+    G.banner = 'DR. CLIPBOARD: ROPE SWEEP — DODGE OR PARRY'; G.bannerT = 2;
+  }
+}
+function fireSweep(e) {
+  rings.push({ cx: e.x, cy: e.y - 60, r: 0, maxR: 300, t: 0, dur: 0.6, dmg: 14, done: false, owner: e });
+  e.state = 'recover'; e.stateT = 0.4; e.windup = 0;
+}
+
+/* ---------- Snap-to-beat input queue (P2) ----------
+   Offensive moves (punch, kick, throw) queue and fire on the next
+   beat boundary, judged by the press offset to the nearest beat
+   (beatOffset() at press time). One pending action at a time — a
+   newer press replaces it. If a swing is still in flight when the
+   beat lands, the queue holds one more beat instead of eating the
+   press. No audio clock means no beat to snap to — fire at once.
+   DECISION (parry edge case): parry and dodge are NOT queued. A
+   parry is a reaction to a telegraph that can end before the next
+   beat, so it fires the instant it is pressed, judged off-beat if
+   the press is off-beat — and the counter check runs at press time,
+   while the prompt is up. Waiting would make the COUNTER prompt
+   unanswerable and the strike-time parry fallback useless. Dodge
+   follows the same rule: a dash that waits for the beat cannot
+   dodge a strike landing in 0.25s. */
+let pendingAction = null;
+/* Combo string history (P5): the last 3 EXECUTED attacks, post
+   snap-to-beat queue — a throw in the middle breaks the string, same
+   as any other move that is not punch or kick in the right slot. */
+let atkHist = [];
+function nextBeatTimeFromNow() {
+  // Unshifted audio clock: fireAt is a point on the audio clock, and
+  // the swing must fire when the audio clock reaches it. calMs is a
+  // judgement offset only (how late the player hears the beat) — it
+  // must never push the fire late, or every queued swing lands
+  // calMs after the beat (tens of ms on Bluetooth audio).
+  const now = AC.currentTime;
+  let t = nextBeatTime;
+  while (t <= now) t += beatDur;
+  return t;
+}
+function fireQueuedAction() {
+  if (!pendingAction || !AC || !musicOn) return;
+  const now = AC.currentTime;
+  if (now < pendingAction.fireAt - 0.005) return;
+  if (player.atkT > 0) { pendingAction.fireAt += beatDur; return; }
+  const a = pendingAction; pendingAction = null;
+  executeAttack(a.kind, a.off);
+}
+/* The queue also fires on the audio clock, not just the render
+   clock — a 5ms timer, so a slow frame never pushes a beat-snapped
+   swing late. Guards mirror update(): only while fighting and
+   unpaused. The update() call stays as the backstop. */
+setInterval(function () {
+  if (G.state === 'fight' && !G.paused) fireQueuedAction();
+}, 5);
+
+function doAttack(kind) {
+  initAudio();
+  if (G.state !== 'fight' || G.paused) return;
+  // Snap-to-beat: the swing queues and fires on the next beat
+  // boundary, judged by the press offset to the nearest beat. A
+  // newer press replaces the pending one. No audio clock (or no
+  // music) means no beat to snap to — fire at once.
+  if (!AC || !musicOn) { executeAttack(kind, 999); return; }
+  pendingAction = { kind: kind, off: beatOffset(), fireAt: nextBeatTimeFromNow() };
+}
+
+/* Nearest living enemy, preferring the held D-pad direction — tap
+   toward an enemy and Sleeze turns to face them. Pass dir 0 for
+   the nearest enemy overall. */
+function nearestEnemy(maxD, dir) {
+  let near = null, nearD = maxD;
+  enemies.forEach(e => {
+    if (e.dead || e.hp <= 0) return;
+    if (dir && Math.sign(e.x - player.x) !== dir) return;
+    const d = Math.hypot(e.x - player.x, e.y - player.y);
+    if (d < nearD) { nearD = d; near = e; }
+  });
+  return near;
+}
+
+/* The swing itself, run on the beat by the queue (or at once with no
+   audio clock). Judged by the stored press offset, not by when the
+   beat lands — an off-beat press still lands at full damage. */
+function executeAttack(kind, off) {
+  if (player.atkT > 0) return;
+  // Auto-face the nearest living enemy within 400px, preferring the
+  // held D-pad direction — no extra tap to turn around when
+  // something is behind you.
+  const heldDir = (keys['ArrowRight'] ? 1 : 0) - (keys['ArrowLeft'] ? 1 : 0);
+  const near = nearestEnemy(400, heldDir) || (heldDir ? nearestEnemy(400, 0) : null);
+  if (near && Math.abs(near.x - player.x) > 12) player.facing = Math.sign(near.x - player.x);
+  let j = judgeFromOffset(off);
+  /* Combo string (P5 shop, one-time, 100 fans): when the last three
+     EXECUTED attacks are punch, punch, kick in order, the kick is a
+     finisher-grade string ender — 1.5x on top of the judgement mult,
+     spinback clip, a "STRING!" float and +3 style. It reads executed
+     attacks (post queue), so it works with the snap-to-beat queue,
+     and a throw between the punches breaks the string. It does NOT
+     clash with the every-3rd-punch upper rule: upper is a punch, the
+     string ender is a kick — a punch that is both the 3rd punch and
+     part of the string still plays upper and still counts toward it. */
+  const isString = shop.combo && kind === 'kick' && atkHist.length >= 2 && atkHist[atkHist.length - 2] === 'punch' && atkHist[atkHist.length - 1] === 'punch';
+  atkHist.push(kind);
+  if (atkHist.length > 3) atkHist.shift();
+  if (isString) j = { name: j.name, mult: j.mult * 1.5, color: j.color };
+  // FEVER RUSH: attacks run 30% faster — atkT and the gap-closer
+  // timing both shrink by the same factor. beatDur never moves.
+  const rushSpd = G.rushT > 0 ? 1.3 : 1;
+  // SPINBACK KICK (Ch.2 unlock): every kick is the boss's spin kick —
+  // spinback clip, 175px reach, 22 damage. Without it, kicks are the
+  // plain kick (135px, 16 dmg) with the PERFECT dance-kick cycle.
+  const spin = kind === 'kick' && unlocks.spinKick;
+  player.atkT = 0.2 / rushSpd; player.atkKind = kind;
+  // Attack lunge: step forward on the swing, synced to the contact —
+  // a velocity burst that decays over the swing, never a teleport.
+  // Kick covers ~36px, punch ~28px.
+  if (kind === 'kick') player.lungeVx = 180 * player.facing;
+  else if (kind === 'punch') player.lungeVx = 140 * player.facing;
+  if (kind === 'kick') {
+    G.styleMoves.add('kick');
+    if (spin || isString) setMove('spinback', clipDur('spinback', 1.2), { pre: 'windup', preDur: 0.1 });
+    else if (j.name === 'PERFECT!') { setMove(DANCE_KICKS[kickIx % DANCE_KICKS.length], clipDur(DANCE_KICKS[kickIx % DANCE_KICKS.length], 1.5), { pre: 'windup', preDur: 0.1 }); kickIx++; }
+    else setMove('kick', clipDur('kick', 0.8), { pre: 'windup', preDur: 0.1 });
+  } else if (kind === 'punch') {
+    G.styleMoves.add('punch');
+    punchIx++; setMove(punchIx % 3 === 0 ? 'upper' : 'punch', clipDur(punchIx % 3 === 0 ? 'upper' : 'punch', punchIx % 3 === 0 ? 0.9 : 0.6), { pre: 'windup', preDur: 0.08 });
+  } else { G.styleMoves.add('throw'); setMove('throw', clipDur('throw', 0.7)); }
+  tone(j.name === 'PERFECT!' ? 780 : 420, AC ? AC.currentTime : 0, 0.08, 'square', 0.15, 220);
+
+  if (kind === 'throw') {
+    projectiles.push({ x: player.x + 30 * player.facing, y: player.y - 65, vx: 680 * player.facing, j });
+    return;
+  }
+
+  const reach = kind === 'kick' ? (spin ? 175 : 135) : 105;
+  // Gap-closer: the target is inside 260px but out of reach. The
+  // same Phase 1 lunge covers the gap in ~0.15s — lunge speed is
+  // gap x 9.5, because an exp-decay burst (tau 0.2s) covers
+  // v0/5 x (1 - e^-0.75) = v0 x 0.1055 in 0.15s, so v0 = gap / 0.1055.
+  // Capped at 1500px/s; the slide stops dead on arrival. The hit
+  // resolves when the lunge carries Sleeze into reach, or after
+  // 0.15s at the latest. Past 260px there is no gap-close — walk.
+  if (near) {
+    const dx = near.x - player.x;
+    const gap = Math.abs(dx) - (reach - 12);
+    const dist = Math.hypot(dx, near.y - player.y);
+    if (gap > 0 && dist <= 260 && Math.sign(dx) === player.facing) {
+      player.lungeVx = player.facing * Math.min(1500, gap * 9.5) * rushSpd;
+      player.pendingHit = { kind: kind, j: j, target: near, t: 0.15 / rushSpd, spin: spin, string: isString };
+      return;
+    }
+  }
+  resolveMeleeHit(kind, j, spin, isString);
+}
+
+/* The contact: slash arc + the reach check at the moment of the
+   hit. Shared by the instant swing and the gap-closer arrival.
+   isString (P5 combo string): the string-ender kick pays +3 style
+   and a STRING! float once per swing, even if it clips two enemies. */
+function resolveMeleeHit(kind, j, spin, isString) {
+  // Comic-book neon slash arc
+  slashes.push({ x: player.x + 55 * player.facing, y: player.y - 60, dir: player.facing, kind, col: j.color, t: 0 });
+  const reach = kind === 'kick' ? (spin ? 175 : 135) : 105;
+  const baseDmg = kind === 'kick' ? (spin ? 22 : 16) : 11;
+  let hit = false;
+  enemies.forEach(e => {
+    if (Math.abs(e.x - player.x) < reach && Math.abs(e.y - player.y) < 55 && Math.sign(e.x - player.x) === player.facing) {
+      hit = true;
+      applyHit(e, baseDmg, j, { knock: (kind === 'kick' ? 30 : 18) * player.facing, heavy: kind === 'kick' });
+    }
+  });
+  if (isString && hit) { G.style += 3; addFloat(player.x, player.y - 152, 'STRING!', COL.gold); }
+  if (!hit) addFloat(player.x, player.y - 130, 'WHIFF', '#8E94A5');
+}
+
+function doDodge() {
+  initAudio();
+  if (G.state !== 'fight' || G.paused || player.dodgeT > 0 || player.dodgeCd > 0) return;
+  G.styleMoves.add('dodge');
+  player.dodgeT = 0.32; player.dodgeCd = 1.5 * beatDur; // 1.5 beats — scales with the BPM ramp
+  // A real dash: a velocity burst that decays over the 0.32s window,
+  // i-frames for the full window, fading afterimage ghosts, and a
+  // small camera kick. No teleport.
+  player.dashDir = player.facing;
+  player.dashVx = 700 * player.dashDir;
+  player.ghostT = 0;
+  player.dashHitDone = false; // DASH STRIKE (Ch.1 unlock) gets one hit per dash
+  ghosts.push({ x: player.x, y: player.y, t: 0, life: 0.28, dir: player.facing, fr: currentPlayerFrame() });
+  G.shake = Math.max(G.shake, 4);
+  burst(player.x, player.y - 50, COL.cyan, 10);
+  addFloat(player.x, player.y - 130, 'PHASE DASH', COL.cyan);
+}
+
+function doParry() {
+  initAudio();
+  if (G.state !== 'fight' || G.paused || player.parryT > 0 || player.parryCd > 0) return;
+  // Judge the press now — the payoff is decided by the player's
+  // timing, not by when the enemy's strike lands.
+  player.parryJudge = judge();
+  G.styleMoves.add('parry');
+  // COUNTER: a telegraphing enemy inside 260px eats a counter on the
+  // spot — 1.6s stun, the strike cancelled, 20 damage, +4 style,
+  // white/gold flash via applyHit. Only the nearest telegraphing
+  // enemy is countered; a second one falls back to the strike-time
+  // parry, as in round 3.
+  let counter = null, cd = 260;
+  enemies.forEach(e => {
+    if (e.dead || e.hp <= 0 || e.state !== 'telegraph') return;
+    const d = Math.hypot(e.x - player.x, e.y - player.y);
+    if (d < cd) { cd = d; counter = e; }
+  });
+  setMove('block', 0.38);
+  player.parryT = 0.38; player.parryCd = 2 * beatDur; // 2 beats — scales with the BPM ramp
+  if (counter) {
+    if (Math.abs(counter.x - player.x) > 12) player.facing = Math.sign(counter.x - player.x);
+    counter.stunT = 1.6; counter.state = 'recover'; counter.stateT = 0.4; counter.windup = 0;
+    G.styleMoves.add('counter');
+    G.style += 4;
+    applyHit(counter, 20, { name: 'COUNTER', mult: 1, color: COL.gold }, { knock: 24 * player.facing, heavy: true, floatText: 'COUNTER! -20' });
+    G.shake = Math.max(G.shake, 10);
+  }
+  addFloat(player.x, player.y - 130, 'PARRY STANCE', COL.gold);
+}
+
+/* Takedown tokens (P3): 1 token per 12 combo, up to the cap (base 3,
+   +1 per slot bought in the hub, hard cap 5), fight-only
+   (reset in beginFight). E spends one token on a short cinematic
+   finisher — headspin / flair / spinflip cycle, ~0.15s slow-mo freeze
+   (the hit-stop mechanism, longer than the normal 0.08s), 65 damage
+   to every enemy in the old 320px finisher range. 65, not the old 55:
+   the token is scarce now, so the payoff is bigger. E with 0 tokens
+   does nothing but a grey NO TOKENS float. The old meter-100 finisher
+   path is deleted — Fever 100 starts a Rush instead. */
+function doTakedown() {
+  initAudio();
+  if (G.state !== 'fight' || G.paused) return;
+  if (G.tokens < 1) { addFloat(player.x, player.y - 130, 'NO TOKENS', '#8E94A5'); tone(140, AC ? AC.currentTime : 0, 0.1, 'square', 0.1); return; }
+  G.tokens--;
+  G.styleMoves.add('takedown'); G.style += 2;
+  G.banner = '★ BEAT DROP FINISHER ★'; G.bannerT = 1.5;
+  const finClip = ['headspin', 'flair', 'spinflip'][finIx++ % 3];
+  setMove(finClip, beatDur * 3, { loop: true });
+  slashes.push({ x: player.x, y: player.y - 60, dir: player.facing, kind: 'finisher', col: COL.gold, t: 0 });
+  enemies.forEach(e => {
+    if (Math.abs(e.x - player.x) < 320) {
+      applyHit(e, 65, { name: 'TAKEDOWN', mult: 1, color: COL.gold }, { floatText: 'SMASH -65!', fever: false });
+      e.stunT = 1.5; e.flashT = 0.2;
+      burst(e.x, e.y - 60, COL.gold, 22);
+    }
+  });
+  G.shake = 15; G.hitStop = Math.max(G.hitStop, 0.15); // slow-mo beat
+}
+
+/* Dance input (P3): keyboard F + the DANCE pad button. Plays one dance
+   clip (hiphop / headspin / flair / taunt, cycling) for exactly 1 beat
+   through the existing setMove one-shot system. No damage, +8 Fever,
+   +1 style variety (dance is the 8th move type). It holds the move slot
+   for its beat like an attack's atkT — swings wait — but it never moves
+   the player and never interrupts movement. F was unused; parry/dodge
+   stay instant, dance is not queued. Paused guard matches the Round 3
+   fix — no input while paused. */
+const DANCE_CLIPS = ['hiphop', 'headspin', 'flair', 'taunt'];
+let danceIx = 0;
+function doDance() {
+  initAudio();
+  if (G.state !== 'fight' || G.paused) return;
+  if (player.atkT > 0 || player.pendingHit) return; // move slot busy this beat
+  const clip = DANCE_CLIPS[danceIx++ % DANCE_CLIPS.length];
+  player.atkT = beatDur; player.atkKind = 'dance';
+  setMove(clip, beatDur);
+  G.styleMoves.add('dance');
+  addFever(FEVER.DANCE);
+  addFloat(player.x, player.y - 130, 'DANCE +8 FEVER', COL.pink);
+  tone(660, AC ? AC.currentTime : 0, 0.08, 'square', 0.1, 880);
+}
+
+/* ---------- Input ---------- */
+const keys = {};
+function setKey(k, val) { keys[k] = val; initAudio(); }
+window.addEventListener('keydown', e => {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  if (e.repeat) return;
+  keys[e.key] = true; initAudio();
+  const k = e.key.toLowerCase();
+  if (G.state === 'fight') {
+    if (k === 'j') doAttack('punch');
+    if (k === 'k') doAttack('kick');
+    if (k === 'l') doAttack('throw');
+    if (k === ' ') doDodge();
+    if (k === 's') doParry();
+    if (k === 'e') doTakedown();
+    if (k === 'f') doDance();
+  }
+});
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+/* Touch pad — pointer events, not touch events. A direction releases
+   on pointerup, pointercancel, pointerleave and lostpointercapture,
+   so a notification or a palm graze can never stick movement.
+   Diagonals press both axes; a ref-count per key keeps shared axes
+   honest when two buttons hold the same one. */
+const heldDirs = {};
+function padDir(keysArr, on) {
+  keysArr.forEach(k => {
+    heldDirs[k] = (heldDirs[k] || 0) + (on ? 1 : -1);
+    if (heldDirs[k] < 0) heldDirs[k] = 0;
+    setKey(k, heldDirs[k] > 0);
+  });
+}
+function bindHold(el, keysArr) {
+  if (!el) return;
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    padDir(keysArr, true);
+  });
+  const release = e => { e.preventDefault(); padDir(keysArr, false); };
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
+  el.addEventListener('pointerleave', release);
+  el.addEventListener('lostpointercapture', release);
+}
+function bindTap(el, fn) {
+  if (!el) return;
+  el.addEventListener('pointerdown', e => { e.preventDefault(); fn(); });
+}
+bindHold(document.getElementById('padUp'), ['ArrowUp']);
+bindHold(document.getElementById('padDown'), ['ArrowDown']);
+bindHold(document.getElementById('padLeft'), ['ArrowLeft']);
+bindHold(document.getElementById('padRight'), ['ArrowRight']);
+bindHold(document.getElementById('padUL'), ['ArrowUp', 'ArrowLeft']);
+bindHold(document.getElementById('padUR'), ['ArrowUp', 'ArrowRight']);
+bindHold(document.getElementById('padDL'), ['ArrowDown', 'ArrowLeft']);
+bindHold(document.getElementById('padDR'), ['ArrowDown', 'ArrowRight']);
+bindTap(document.getElementById('btnPunch'), () => doAttack('punch'));
+bindTap(document.getElementById('btnKick'), () => doAttack('kick'));
+bindTap(document.getElementById('btnThrow'), () => doAttack('throw'));
+bindTap(document.getElementById('btnDodge'), doDodge);
+bindTap(document.getElementById('btnParry'), doParry);
+bindTap(document.getElementById('btnTakedown'), doTakedown);
+bindTap(document.getElementById('btnDance'), doDance);
+
+/* Cooldown state on the pad buttons, refreshed every frame. */
+function syncPadCooldowns() {
+  const pb = document.getElementById('btnParry'), db = document.getElementById('btnDodge');
+  if (pb) pb.classList.toggle('cooling', player.parryCd > 0);
+  if (db) db.classList.toggle('cooling', player.dodgeCd > 0);
+}
+
+/* Losing the window clears every held key and pad direction — desktop
+   keys never stick after an alt-tab. */
+function clearKeys() {
+  Object.keys(keys).forEach(k => { keys[k] = false; });
+  Object.keys(heldDirs).forEach(k => { heldDirs[k] = 0; });
+}
+window.addEventListener('blur', clearKeys);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { clearKeys(); pauseGame(); }
+});
+
+/* ---------- Update Loop ---------- */
+function update(dt) {
+  G.time += dt;
+  if (G.bannerT > 0) G.bannerT -= dt;
+  if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 28);
+  // Snap-to-beat: a queued swing fires on the next beat boundary.
+  // Checked before the hit-stop freeze so the timing stays tight.
+  fireQueuedAction();
+  if (G.hitStop > 0) { G.hitStop -= dt; return; }
+  // Fever Rush drain: 8 beats, Fever falls 100 -> 0 across them, then
+  // refills normally. addFever() already refuses gains mid-Rush.
+  if (G.rushT > 0) {
+    G.rushT -= dt / beatDur;
+    if (G.rushT <= 0) { G.rushT = 0; player.fever = 0; }
+    else player.fever = 100 * G.rushT / 8;
+  }
+  if (pMove) pMove.t += dt;
+  corpses.forEach(c => c.t += dt); corpses = corpses.filter(c => c.t < 2.2);
+  if (G.danceT > 0) { G.danceT -= dt; if (G.danceT > 0) return; pMove = null; }
+
+  // Spawning
+  if (G.spawnQueue.length > 0) {
+    G.spawnTimer -= dt;
+    if (G.spawnTimer <= 0) { spawnEnemy(G.spawnQueue.shift()); G.spawnTimer = 1.3; }
+  } else if (enemies.length === 0) {
+    if (G.mode === 'inf') {
+      // Wave cleared: Sleeze hits the Hip Hop Dancing emote for 8 beats first.
+      if (!G.danced) { G.danced = true; G.danceT = beatDur * 8; pendingAction = null; player.pendingHit = null; setMove('hiphop', beatDur * 8, { loop: true }); G.banner = 'WAVE CLEAR — DANCE BREAK'; G.bannerT = 1.6; return; }
+      G.danced = false;
+      G.wave++;
+      player.hp = Math.min(player.maxHp, player.hp + 15); // wave-clear heal caps at the shop-raised max HP (P5)
+      if (G.imported) {
+        // Imported run: the file's tempo IS the tempo — no BPM ramp and
+        // no music restart. The loop keeps playing, the beat clock
+        // keeps its detected BPM, and the wave banner says so.
+        G.banner = 'WAVE ' + G.wave + ' — ' + G.imported.bpm + ' BPM · YOUR TRACK'; G.bannerT = 2;
+      } else {
+        // Synth endless: the wave ramp climbs from the picked track's
+        // own BPM (+5 per wave, cap 160) — DCEASED still ramps 120, 125,
+        // 130… exactly as before; MY LUVA climbs 100, 105, 110…
+        G.endlessBpm = Math.min(160, (G.track ? G.track.bpm : 120) + (G.wave - 1) * 5);
+        G.speedMul = Math.min(1.5, 1 + (G.wave - 1) * 0.05);
+        startMusic(G.endlessBpm);
+        G.banner = 'WAVE ' + G.wave + ' — ' + G.endlessBpm + ' BPM'; G.bannerT = 2;
+      }
+      const pool = ['stan', 'charger', 'bruiser', 'stan', 'charger', 'bruiser', 'stan', 'charger'];
+      const qn = Math.min(8, 3 + G.wave);
+      G.spawnQueue = [];
+      for (let i = 0; i < qn; i++) G.spawnQueue.push(pool[i % pool.length]);
+    } else {
+      endFight(true); return;
+    }
+  }
+
+  // Player movement — velocity-based, not instant. Accelerate to full
+  // speed in ~0.12s, slide ~0.15s to a stop when input lets go.
+  let mx = (keys['ArrowRight'] ? 1 : 0) - (keys['ArrowLeft'] ? 1 : 0);
+  let my = (keys['ArrowDown'] ? 1 : 0) - (keys['ArrowUp'] ? 1 : 0);
+  if (mx !== 0) player.facing = mx;
+  const ACC = 280 / 0.12, DEC = 280 / 0.15;
+  player.vx = approach(player.vx, mx * 280, (mx !== 0 ? ACC : DEC) * dt);
+  player.vy = approach(player.vy, my * 180, (my !== 0 ? ACC : DEC) * dt);
+  // Dash burst decays linearly over the dodge window; lunge decays fast.
+  if (player.dodgeT > 0) player.dashVx = 700 * player.dashDir * (player.dodgeT / 0.32);
+  else player.dashVx = 0;
+  player.lungeVx *= Math.exp(-5 * dt);
+  if (Math.abs(player.lungeVx) < 2) player.lungeVx = 0;
+  const px0 = player.x, py0 = player.y;
+  player.x = Math.max(60, Math.min(900, player.x + (player.vx + player.dashVx + player.lungeVx) * dt));
+  player.y = Math.max(320, Math.min(480, player.y + player.vy * dt));
+  player.walkDist += Math.hypot(player.x - px0, player.y - py0);
+  // Afterimage ghosts along the dash path, one every ~0.08s.
+  if (player.dodgeT > 0) {
+    player.ghostT += dt;
+    if (player.ghostT >= 0.08) {
+      player.ghostT = 0;
+      ghosts.push({ x: player.x, y: player.y, t: 0, life: 0.28, dir: player.facing, fr: currentPlayerFrame() });
+    }
+  }
+  ghosts.forEach(g => g.t += dt); ghosts = ghosts.filter(g => g.t < g.life);
+  impacts.forEach(r => r.t += dt); impacts = impacts.filter(r => r.t < r.dur);
+
+  // DASH STRIKE (Ch.1 unlock): the dash itself hits — first enemy
+  // inside 80px takes 14, once per dash. Live in every later fight,
+  // endless included.
+  if (unlocks.dash && player.dodgeT > 0 && !player.dashHitDone) {
+    enemies.forEach(e => {
+      if (!player.dashHitDone && !e.dead && e.hp > 0 && Math.hypot(e.x - player.x, e.y - player.y) < 80) {
+        player.dashHitDone = true;
+        applyHit(e, 14, { name: 'HIT', mult: 1, color: COL.cyan }, { knock: 20 * player.dashDir, floatText: 'DASH STRIKE -14' });
+      }
+    });
+  }
+
+  // Gap-closer travel: the hit resolves when the lunge carries Sleeze
+  // into reach, or after 0.15s at the latest. The slide stops dead
+  // on arrival so Sleeze never overshoots past the target.
+  if (player.pendingHit) {
+    const ph = player.pendingHit;
+    ph.t -= dt;
+    const te = ph.target;
+    if (!te || te.dead || te.hp <= 0) { player.pendingHit = null; player.lungeVx = 0; }
+    else {
+      const reach = ph.kind === 'kick' ? 135 : 105;
+      const inReach = Math.abs(te.x - player.x) < reach && Math.abs(te.y - player.y) < 55;
+      if (inReach || ph.t <= 0) {
+        player.pendingHit = null;
+        player.lungeVx = 0;
+        resolveMeleeHit(ph.kind, ph.j, ph.spin, ph.string);
+      }
+    }
+  }
+
+  if (player.dodgeT > 0) player.dodgeT -= dt;
+  if (player.parryT > 0) player.parryT -= dt;
+  if (player.parryT <= 0) player.parryJudge = null;
+  if (player.atkT > 0) player.atkT -= dt;
+  if (player.hurtT > 0) player.hurtT -= dt;
+  if (player.parryCd > 0) player.parryCd -= dt;
+  if (player.dodgeCd > 0) player.dodgeCd -= dt;
+
+  // Projectiles — a throw hit pays exactly like a melee hit.
+  projectiles = projectiles.filter(p => {
+    p.x += p.vx * dt;
+    let hit = false;
+    enemies.forEach(e => {
+      if (!hit && Math.abs(e.x - p.x) < 35 && Math.abs(e.y - 60 - p.y) < 60) {
+        applyHit(e, 10, p.j, {});
+        hit = true;
+      }
+    });
+    return !hit && p.x > 0 && p.x < W;
+  });
+
+  // Spotlight Blast rings — expanding gold shockwaves. A ring hurts
+  // on contact unless you are dodging through it or parry it.
+  rings.forEach(r => {
+    r.t += dt;
+    r.r = (r.t / r.dur) * r.maxR;
+    if (!r.done) {
+      const pd = Math.hypot(player.x - r.cx, (player.y - 60) - r.cy);
+      if (Math.abs(pd - r.r) < 30) {
+        if (player.parryT > 0) {
+          r.done = true;
+          const v = r.owner;
+          if (v && v.hp > 0) { v.stunT = 1.6; v.state = 'chase'; v.stateT = 0; }
+          const j = player.parryJudge || judge();
+          player.parryJudge = null;
+          if (j.name === 'MISS') {
+            addFever(FEVER.PARRY_OFF);
+            addFloat(player.x, player.y - 130, 'BLAST PARRIED (OFF-BEAT) +3', COL.cyan);
+          } else {
+            const pg = gainScore(200); addFever(FEVER.PARRY);
+            G.style += 2;
+            addFloat(player.x, player.y - 130, 'BLAST PARRIED! +' + pg, COL.cyan);
+          }
+          burst(player.x, player.y - 60, COL.cyan, 15);
+        } else if (player.dodgeT <= 0) {
+          r.done = true;
+          player.hp -= r.dmg; player.hurtT = 0.25; G.combo = 0; G.style *= 0.75; G.shake = 12;
+          setMove('hit', 0.35);
+          addFloat(player.x, player.y - 130, '-' + r.dmg, COL.red);
+          addFloat(player.x, player.y - 152, 'STYLE -25%', '#8E94A5');
+          if (player.hp <= 0) endFight(false);
+        }
+      }
+    }
+  });
+  rings = rings.filter(r => r.t < r.dur);
+
+  // Enemies — chase -> windup (0.7-1.0s, per-enemy) -> telegraph
+  // (0.45s, red, readable) -> strike (0.12s) -> recover (0.4s, cannot
+  // attack). VEX adds a 'blast' state. Nobody swings together: while
+  // one enemy is telegraphing or striking, nearby enemies hold.
+  const nearSwing = e => enemies.some(o => o !== e && (o.state === 'telegraph' || o.state === 'strike' || o.state === 'sweep') && Math.hypot(o.x - e.x, o.y - e.y) < 120);
+  enemies.forEach(e => {
+    if (e.dead) return; // Died this frame — takes no AI action at all.
+    // Knockback velocity arc — the enemy slides back and the arc
+    // decays over ~0.25s. The shadow stays on the floor.
+    if (e.kvx) { e.x += e.kvx * dt; e.kvx *= Math.exp(-dt / 0.08); if (Math.abs(e.kvx) < 5) e.kvx = 0; }
+    if (e.flashT > 0) e.flashT -= dt;
+    if (e.stunT > 0) { e.stunT -= dt; return; }
+    if (e.tauntT > 0) { e.tauntT -= dt; if (e.state === 'recover') e.stateT -= dt; return; }
+    // VEX: phase-change and timer-driven Spotlight Blast.
+    if (e.type === 'vex' && e.state !== 'blast') {
+      const pct = e.hp / e.maxHp;
+      if ((e.blastPhase === 0 && pct <= 0.66) || (e.blastPhase === 1 && pct <= 0.33)) {
+        e.blastPhase++;
+        startBlast(e);
+      } else {
+        e.blastT -= dt;
+        if (e.blastT <= 0) startBlast(e);
+      }
+    }
+    // DR. CLIPBOARD: Rope Sweep on a timer, chase or recover — never
+    // across a windup, telegraph or strike already in flight (the
+    // COUNTER prompt owns those). Ticking in recover too means a
+    // player hugging the boss still sees the signature, not just
+    // one who keeps their distance.
+    if (e.type === 'boss1' && (e.state === 'chase' || e.state === 'recover')) {
+      e.sigT -= dt;
+      if (e.sigT <= 0) { e.sigT = 7; startSweep(e); }
+    }
+    const dx = player.x - e.x, dy = player.y - e.y, dist = Math.hypot(dx, dy);
+    // Facing flips only past a 24px deadzone — no flicker when the
+    // player hovers right on top of the enemy.
+    if (Math.abs(dx) > 24) e.facing = dx > 0 ? 1 : -1;
+    if (e.state === 'blast') {
+      e.stateT -= dt;
+      e.vx += (0 - e.vx) * Math.min(1, 8 * dt); e.vy += (0 - e.vy) * Math.min(1, 8 * dt);
+      e.windup = 0.6;
+      if (e.stateT <= 0) fireBlast(e);
+      return;
+    }
+    if (e.state === 'sweep') {
+      e.stateT -= dt;
+      e.vx += (0 - e.vx) * Math.min(1, 8 * dt); e.vy += (0 - e.vy) * Math.min(1, 8 * dt);
+      e.windup = 0.6;
+      if (e.stateT <= 0) fireSweep(e);
+      return;
+    }
+    if (e.state === 'recover') {
+      e.stateT -= dt;
+      e.vx += (0 - e.vx) * Math.min(1, 8 * dt); e.vy += (0 - e.vy) * Math.min(1, 8 * dt);
+      if (e.stateT <= 0) { e.state = 'chase'; e.windup = 0; }
+      return;
+    }
+    if (e.state === 'strike') {
+      e.stateT -= dt;
+      e.vx += (0 - e.vx) * Math.min(1, 8 * dt); e.vy += (0 - e.vy) * Math.min(1, 8 * dt);
+      if (e.stateT <= 0) {
+        // SUBJECT SEVEN: Triple Tap chains two extra strikes after the
+        // first — each one snaps to its own beat, same as a normal strike.
+        if (e.type === 'boss2' && e.chain > 0) { e.chain--; e.state = 'windup'; e.stateT = 0.35; e.windup = 0; }
+        else { e.chainArmed = false; e.state = 'recover'; e.stateT = 0.4; e.windup = 0; }
+      }
+      return;
+    }
+    if (e.state === 'telegraph') {
+      e.stateT -= dt;
+      // Step in while telegraphing — close a short gap, but a player
+      // who walked away still outruns the strike (see resolveStrike).
+      const tdx = player.x - e.x, tdy = player.y - e.y, td = Math.hypot(tdx, tdy);
+      if (td > 1) {
+        // Step in on the same lerped velocity as the chase, so the
+        // step-in never snaps.
+        const dvx = (tdx / td) * e.spd * 0.6, dvy = (tdy / td) * e.spd * 0.36;
+        const k = Math.min(1, 8 * dt);
+        e.vx += (dvx - e.vx) * k; e.vy += (dvy - e.vy) * k;
+        const ox = e.x, oy = e.y;
+        e.x += e.vx * dt; e.y += e.vy * dt;
+        e.walkDist += Math.hypot(e.x - ox, e.y - oy);
+      }
+      e.windup = Math.max(0, Math.min(1, 1 - Math.max(0, e.stateT) / (e.teleDur || 0.45)));
+      if (e.stateT <= 0) {
+        e.state = 'strike'; e.stateT = 0.12;
+        resolveStrike(e);
+      }
+      return;
+    }
+    if (e.state === 'windup') {
+      e.vx += (0 - e.vx) * Math.min(1, 8 * dt); e.vy += (0 - e.vy) * Math.min(1, 8 * dt);
+      if (!nearSwing(e)) {
+        e.stateT -= dt;
+        if (e.stateT <= 0) {
+          // SUBJECT SEVEN: a fresh sequence arms the Triple Tap chain.
+          // chainArmed keeps the chain from re-arming mid-chain.
+          if (e.type === 'boss2' && !e.chainArmed) {
+            e.chainArmed = true; e.chain = 2;
+            if (!e.sigAnnounced) { e.sigAnnounced = true; G.banner = 'SUBJECT SEVEN: TRIPLE TAP'; G.bannerT = 2; }
+          }
+          // Snap the strike to the next beat — the telegraph stretches
+          // or shrinks so the hit lands exactly on it (never sooner
+          // than ~0.25s, so it stays readable).
+          e.state = 'telegraph'; e.teleDur = timeToBeat(0.25); e.stateT = e.teleDur; e.windup = 0;
+        }
+      }
+      return;
+    }
+    // chase — velocity lerps toward the desired direction (~8/s), so
+    // turns are smooth and the walk cycle is driven by distance.
+    if (dist > 72) {
+      const dvx = (dx / dist) * e.spd, dvy = (dy / dist) * e.spd * 0.6;
+      const k = Math.min(1, 8 * dt);
+      e.vx += (dvx - e.vx) * k; e.vy += (dvy - e.vy) * k;
+      const ox = e.x, oy = e.y;
+      e.x += e.vx * dt; e.y += e.vy * dt;
+      e.walkDist += Math.hypot(e.x - ox, e.y - oy);
+    } else {
+      e.vx = 0; e.vy = 0;
+      e.state = 'windup'; e.stateT = e.windupMax;
+    }
+  });
+  // Separation steering — nobody piles onto the same spot.
+  for (let i = 0; i < enemies.length; i++) {
+    for (let j = i + 1; j < enemies.length; j++) {
+      const a = enemies[i], b = enemies[j];
+      const ddx = b.x - a.x, ddy = b.y - a.y;
+      const d = Math.hypot(ddx, ddy);
+      if (d > 0 && d < 70) {
+        // Capped per frame — an uncapped push teleports overlapping
+        // enemies up to 35px in one frame, which reads as jitter.
+        const push = Math.min((70 - d) / 2, 2), nx = ddx / d, ny = ddy / d;
+        a.x -= nx * push; a.y -= ny * push;
+        b.x += nx * push; b.y += ny * push;
+      }
+    }
+  }
+  // A hard push must never shove an enemy off the floor band
+  // (y 320-480) or off-screen.
+  enemies.forEach(e => {
+    e.x = Math.max(40, Math.min(920, e.x));
+    e.y = Math.max(320, Math.min(480, e.y));
+  });
+  enemies = enemies.filter(e => e.hp > 0 && !e.dead);
+
+  slashes.forEach(s => s.t += dt); slashes = slashes.filter(s => s.t < 0.18);
+  floats.forEach(f => { f.t += dt; f.y -= 45 * dt; if (G.bannerT > 0 && f.x > 20 && f.x < 940 && f.y < 168) f.y = 168; }); floats = floats.filter(f => f.t < 0.9);
+  particles.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 550 * dt; });
+  particles = particles.filter(p => p.t < p.life);
+}
+
+/* Pre-rendered club backdrop — tools/render_club.py, baked from
+   map/source/Club.fbx ("Night Dance Club Lowpoly", 00amza, CC BY 4.0).
+   Two layers: the room shell, and the light fixtures, which pulse on
+   the beat. The drawn gradient stays underneath as the fallback. */
+const BG_FAR = new Image(); BG_FAR.src = 'assets/bg_club_far.png';
+const BG_LIT = new Image(); BG_LIT.src = 'assets/bg_club_lights.png';
+
+/* ---------- Stylized Neon Stage & Fighter Rendering ---------- */
+function drawStage() {
+  // Deep synthwave nightclub backdrop
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#090318'); grad.addColorStop(0.55, '#170836'); grad.addColorStop(1, '#06020D');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+
+  // Beat-reactive background equalizer bars & neon pillars
+  const off = beatOffset();
+  const pulse = musicOn ? Math.max(0, 1 - off / beatDur) : 0.2;
+  // The club, baked: room shell first, then the fixtures, brighter
+  // on the beat. EQ bars and the grid floor draw on top of both.
+  if (BG_FAR.complete && BG_FAR.naturalWidth > 0) ctx.drawImage(BG_FAR, 0, 0, W, H);
+  // FEVER RUSH: the fixtures burn brighter and the EQ bars hit
+  // harder — same layers, scaled alpha / amplitude, nothing re-laid out.
+  const rush = G.rushT > 0;
+  if (BG_LIT.complete && BG_LIT.naturalWidth > 0) {
+    ctx.save();
+    ctx.globalAlpha = rush ? Math.min(1, 0.85 + pulse * 0.35) : 0.75 + pulse * 0.25;
+    ctx.drawImage(BG_LIT, 0, 0, W, H);
+    ctx.restore();
+  }
+  for (let i = 0; i < 16; i++) {
+    const bh = (40 + Math.sin(G.time * 4 + i) * 30 + pulse * 90) * (rush ? 1.6 : 1);
+    ctx.fillStyle = i % 2 === 0 ? (rush ? 'rgba(230, 50, 50, 0.28)' : 'rgba(230, 50, 50, 0.14)') : (rush ? 'rgba(0, 240, 255, 0.24)' : 'rgba(0, 240, 255, 0.12)');
+    ctx.fillRect(i * 62 + 10, 310 - bh, 44, bh);
+  }
+
+  // Perspective neon dancefloor grid
+  ctx.fillStyle = '#0B061A'; ctx.fillRect(0, 310, W, H - 310);
+  ctx.strokeStyle = `rgba(255, 51, 204, ${0.22 + pulse * 0.25})`; ctx.lineWidth = 2;
+  for (let y = 310; y <= 490; y += 36) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  for (let x = -200; x <= W + 200; x += 90) {
+    ctx.beginPath(); ctx.moveTo(W/2 + (x - W/2)*0.45, 310); ctx.lineTo(x, 490); ctx.stroke();
+  }
+}
+
+/* ---------- Sprite fighters (real cutouts, neon backlight) ---------- */
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+const SPRITE_DATA = {
+  player: 'assets/sprite_player.png',
+  stan: 'assets/sprite_stan.png',
+  charger: 'assets/sprite_charger.png',
+  bruiser: 'assets/sprite_bruiser.png',
+  vex: 'assets/sprite_vex.png',
+};
+const SPRITES = {};
+['player', 'stan', 'charger', 'bruiser', 'vex'].forEach(function (n) {
+  const im = new Image();
+  im.src = SPRITE_DATA[n];
+  SPRITES[n] = im;
+});
+/* White / red silhouette variants for hit-flash and telegraphs,
+   pre-rendered once per sprite (source-in fill on an offscreen canvas). */
+const FLASH = {};
+function makeFlashVariant(img, color) {
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+function buildFlashVariants() {
+  Object.keys(SPRITES).forEach(function (n) {
+    const im = SPRITES[n];
+    if (im.complete && im.naturalWidth > 0 && !FLASH[n]) {
+      FLASH[n] = { white: makeFlashVariant(im, '#FFFFFF'), red: makeFlashVariant(im, COL.red) };
+    }
+  });
+}
+/* Sprite heights fit the paste's compact playfield (feet at y 320-480). */
+const DRAW_H = { player: 200, stan: 185, charger: 190, bruiser: 225, boss1: 210, boss2: 215, vex: 250 };
+const GLOW = { player: COL.gold, stan: '#C9CCD4', charger: COL.red, bruiser: COL.purple, boss1: COL.gold, boss2: COL.pink, vex: COL.pink };
+function drawH(type) { return DRAW_H[type] || 185; }
+
+/* ---------- 3D-baked animation (Shadow Gangster rig) ----------
+   One sprite sheet rendered from the rigged FBX. Every fighter that is
+   switched on in ANIM_ON plays real motion-capture frames instead of the
+   single painted pose. Flip a type to false to get its PNG back. */
+/* Three rigs, all driven by the same martial-arts mocap (retargeted):
+   gang = Shadow Gangster, thug = enemy1 (balaclava), dead = Raised Dead. */
+const ANIM_SHEETS = {"psxm": {"w": 243, "h": 225, "cols": 16, "clips": {"idle": [0, 9], "walk": [9, 14], "punch": [23, 11], "kick": [34, 10], "throw": [44, 11], "windup": [55, 7], "hit": [62, 8], "knock": [70, 12], "getup": [82, 16], "block": [98, 6], "upper": [104, 10], "taunt": [114, 10], "hiphop": [124, 24], "headspin": [148, 8], "flair": [156, 10], "spinback": [166, 14], "sweep": [180, 12], "armada": [192, 12], "meialua": [204, 12], "spinflip": [216, 12]}, "groundY": 216.1, "anchorX": 108, "bodyH": 199.9, "src": "assets/sheet_psxm_player.png"}, "psxw": {"w": 392, "h": 214, "cols": 16, "clips": {"idle": [0, 9], "walk": [9, 14], "punch": [23, 11], "kick": [34, 10], "throw": [44, 11], "windup": [55, 7], "hit": [62, 8], "knock": [70, 12], "getup": [82, 16], "block": [98, 6], "upper": [104, 10], "taunt": [114, 10], "hiphop": [124, 24], "headspin": [148, 8], "flair": [156, 10], "spinback": [166, 14], "sweep": [180, 12], "armada": [192, 12], "meialua": [204, 12], "spinflip": [216, 12]}, "groundY": 205.1, "anchorX": 220, "bodyH": 199.9, "src": "assets/sheet_psxw_vex.png"}, "gang": {"w": 233, "h": 217, "cols": 16, "clips": {"idle": [0, 9], "walk": [9, 14], "punch": [23, 11], "kick": [34, 10], "throw": [44, 11], "windup": [55, 7], "hit": [62, 8], "knock": [70, 12], "getup": [82, 16], "block": [98, 6], "upper": [104, 10], "taunt": [114, 10], "hiphop": [124, 24], "headspin": [148, 8], "flair": [156, 10], "spinback": [166, 14], "sweep": [180, 12], "armada": [192, 12], "meialua": [204, 12], "spinflip": [216, 12]}, "groundY": 208.1, "anchorX": 106, "bodyH": 199.9, "src": "assets/sheet_gang.png"}, "thug": {"w": 195, "h": 209, "cols": 16, "clips": {"idle": [0, 9], "walk": [9, 14], "punch": [23, 11], "kick": [34, 10], "throw": [44, 11], "windup": [55, 7], "hit": [62, 8], "knock": [70, 12], "upper": [82, 10], "taunt": [92, 10]}, "groundY": 200.1, "anchorX": 82, "bodyH": 199.9, "src": "assets/sheet_thug.png"}, "dead": {"w": 236, "h": 232, "cols": 16, "clips": {"idle": [0, 9], "walk": [9, 14], "punch": [23, 11], "kick": [34, 10], "throw": [44, 11], "windup": [55, 7], "hit": [62, 8], "knock": [70, 12], "upper": [82, 10], "taunt": [92, 10]}, "groundY": 223.1, "anchorX": 87, "bodyH": 199.9, "src": "assets/sheet_dead_skeleton.png"}};
+Object.keys(ANIM_SHEETS).forEach(function (k) { const im = new Image(); im.src = ANIM_SHEETS[k].src; ANIM_SHEETS[k].img = im; });
+/* Who wears which rig. Set a type to null to bring its painted PNG back. */
+/* v7: PSX cast. psxm = PSXprop Male 02 (WardsterSAW), psxw = PSX Low Poly Woman (murilo.kleine, CC-BY). Old 'gang' rig kept for a one-word swap back. Bosses reuse the enemy rigs with a palette tint — no new art. */
+const ANIM_CHAR = { player: 'psxm', stan: 'thug', charger: 'dead', bruiser: 'thug', boss1: 'thug', boss2: 'dead', vex: 'psxw' };
+const ANIM_ON = ANIM_CHAR;
+const ANIM_TINT = { player: null, stan: null, charger: null, bruiser: 'rgba(150,60,255,0.22)', boss1: 'rgba(255,200,60,0.35)', boss2: 'rgba(255,80,180,0.30)', vex: null };
+applyFitTint(); // P5: the equipped fit tint from the save, or none
+let ANIM_META = ANIM_SHEETS.psxm;
+const animScratch = document.createElement('canvas');
+animScratch.width = 400; animScratch.height = 400;
+const animSctx = animScratch.getContext('2d');
+
+/* Which frame to show: clip name + 0..1 progress (or looping time). */
+const CLIP_FALLBACK = { hiphop: 'idle', headspin: 'kick', flair: 'kick', spinback: 'kick', sweep: 'kick', armada: 'kick', meialua: 'kick', spinflip: 'kick', getup: 'idle', block: 'windup' };
+function animFrame(clip, p, loop) {
+  const c = ANIM_META.clips[clip] || ANIM_META.clips[CLIP_FALLBACK[clip] || 'idle']; const n = c[1];
+  let i;
+  if (loop) { i = Math.floor(p * n) % n; if (i < 0) i += n; }
+  else i = Math.max(0, Math.min(n - 1, Math.floor(p * n)));
+  return c[0] + i;
+}
+/* Idle breathes on the beat: ping-pong through the guard frames once per 2 beats. */
+function idleFrame(seed) {
+  const n = ANIM_META.clips.idle[1];
+  const ph = ((G.time + (seed || 0)) * (bpm / 60) / 2) % 1;
+  const k = Math.floor((ph < 0.5 ? ph * 2 : 2 - ph * 2) * (n - 1) + 0.5);
+  return ANIM_META.clips.idle[0] + k;
+}
+
+function animReady(type) {
+  const k = ANIM_CHAR[type]; const S = k && ANIM_SHEETS[k];
+  return !!(S && S.img.complete && S.img.naturalWidth > 0);
+}
+function drawAnimFigure(x, y, type, dir, frame, h, alpha, variant, lx, rot) {
+  // Snap the draw position to whole pixels — the sim keeps floats,
+  // the draw call rounds once, so nothing shimmers.
+  x = Math.round(x); y = Math.round(y);
+  const M = ANIM_SHEETS[ANIM_CHAR[type]]; const ANIM_SHEET = M.img;
+  const scale = h / M.bodyH;
+  const sx = (frame % M.cols) * M.w, sy = Math.floor(frame / M.cols) * M.h;
+  animSctx.clearRect(0, 0, M.w, M.h);
+  animSctx.globalCompositeOperation = 'source-over';
+  animSctx.drawImage(ANIM_SHEET, sx, sy, M.w, M.h, 0, 0, M.w, M.h);
+  const tint = variant === 'white' ? 'rgba(255,255,255,0.85)' : variant === 'red' ? 'rgba(255,30,60,0.55)' : variant === 'cyan' ? 'rgba(0,240,255,0.6)' : ANIM_TINT[type];
+  if (tint) {
+    animSctx.globalCompositeOperation = 'source-atop';
+    animSctx.fillStyle = tint; animSctx.fillRect(0, 0, M.w, M.h);
+    animSctx.globalCompositeOperation = 'source-over';
+  }
+  ctx.save();
+  ctx.translate(x + lx, y);
+  ctx.rotate(rot);
+  ctx.scale(dir * scale, scale);
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = GLOW[type] || '#FFFFFF';
+  ctx.shadowBlur = 8;
+  ctx.drawImage(animScratch, -M.anchorX, -M.groundY);
+  ctx.restore();
+}
+
+/* Animation state pickers — map game state to a clip + progress. */
+const ATK_DUR = 0.2;
+/* Move-set (Mixamo, retargeted). pMove = one-shot clip the player is
+   performing: { clip, t, dur, loop, hold }. Dance kicks fire on PERFECT. */
+const DANCE_KICKS = ['spinback', 'armada', 'meialua', 'sweep', 'spinflip'];
+let pMove = null, kickIx = 0, punchIx = 0, finIx = 0;
+/* One-shots can carry a short anticipation lead-in: { pre: 'windup',
+   preDur: 0.1 } plays 2-3 windup frames before the contact clip.
+   The timer starts negative and the lead-in eats it. */
+function setMove(clip, dur, o) { pMove = Object.assign({ clip: clip, t: 0, dur: Math.max(0.2, dur) }, o || {}); if (pMove.pre) pMove.t = -(pMove.preDur || 0.1); }
+/* One-shot timing audit: a clip must finish inside its beat window
+   without cutting mid-swing or hanging. Duration = the beat share,
+   clamped to the clip's natural length at ~24fps (never under 0.25s,
+   never longer than the clip needs). */
+function clipFrames(clip) {
+  const S = ANIM_SHEETS[ANIM_CHAR.player];
+  const c = S.clips[clip] || S.clips[CLIP_FALLBACK[clip] || 'idle'];
+  return c[1];
+}
+function clipDur(clip, beats) {
+  const natural = clipFrames(clip) / 24;
+  return Math.max(0.25, Math.min(natural, beats * beatDur));
+}
+function currentPlayerFrame() {
+  const a = playerAnim();
+  ANIM_META = ANIM_SHEETS[ANIM_CHAR.player];
+  return a.clip ? animFrame(a.clip, a.p || 0, a.loop) : idleFrame(player.x * 0.013);
+}
+function playerAnim() {
+  if (pMove) {
+    if (pMove.t < 0) return { clip: pMove.pre, p: Math.min(0.999, 1 + pMove.t / (pMove.preDur || 0.1)) };
+    const p = pMove.t / pMove.dur;
+    if (pMove.loop) return { clip: pMove.clip, p: G.time / pMove.dur, loop: true };
+    if (p < 1 || pMove.hold) return { clip: pMove.clip, p: Math.min(0.999, p) };
+  }
+  if (player.parryT > 0) return { clip: 'block', p: 0.5 };
+  if (player.hurtT > 0) return { clip: 'hit', p: 1 - player.hurtT / 0.25 };
+  if (player.atkT > 0) return { clip: player.atkKind === 'kick' ? 'kick' : player.atkKind === 'throw' ? 'throw' : 'punch', p: 1 - player.atkT / ATK_DUR };
+  if (player.dodgeT > 0) return { clip: 'walk', p: 0.35 };
+  // Walk phase comes from distance travelled, not the clock — the
+  // feet match the ground speed and freeze when standing still.
+  if (Math.hypot(player.vx, player.vy) > 10) return { clip: 'walk', p: ((player.walkDist || 0) / 28) % 1, loop: true };
+  return { clip: null };
+}
+function enemyAnim(e) {
+  if (e.tauntT > 0) return { clip: 'taunt', p: 1 - e.tauntT / 1.2 };
+  if (e.stunT > 0) return { clip: 'hit', p: Math.min(0.99, 1.5 - e.stunT) };
+  if (e.flashT > 0 && e.state !== 'strike' && e.state !== 'telegraph') return { clip: 'hit', p: 1 - e.flashT / 0.12 * 0.6 };
+  if (e.state === 'windup') return { clip: 'windup', p: 0.85 * (1 - Math.max(0, e.stateT) / (e.windupMax || 0.8)) };
+  if (e.state === 'telegraph' || e.state === 'blast' || e.state === 'sweep') return { clip: 'windup', p: 0.99 };
+  if (e.state === 'strike' && e.type === 'bruiser') return { clip: 'upper', p: 0.5 * (1 - Math.max(0, e.stateT) / 0.12) };
+  if (e.state === 'recover' && e.type === 'bruiser') return { clip: 'upper', p: 0.5 + 0.5 * (1 - Math.max(0, e.stateT) / 0.4) };
+  if (e.state === 'strike') return { clip: 'punch', p: 0.45 * (1 - Math.max(0, e.stateT) / 0.12) };
+  if (e.state === 'recover') return { clip: 'punch', p: 0.45 + 0.55 * (1 - Math.max(0, e.stateT) / 0.4) };
+  if (e.state === 'chase') return { clip: 'walk', p: ((e.walkDist || 0) / 28) % 1, loop: true };
+  return { clip: null };
+}
+
+function drawFigure(x, y, color, opts) {
+  /* Real sprite cutout with neon backlight. Poses are transforms on the
+     sprite (lunge / tilt / ghost / flash) — no drawn body parts. */
+  opts = opts || {};
+  x = Math.round(x); y = Math.round(y);
+  const type = opts.type || 'stan';
+  const dir = opts.dir || 1;
+  const img = SPRITES[type];
+  const h = drawH(type);
+  const bob = opts.bob ? Math.sin(G.time * (bpm / 60) * Math.PI * 2) * 3 : 0;
+  buildFlashVariants();
+  // baked shadow + floor glow (flat ellipses — the only "shadows" in the game)
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.ellipse(x, y + 4, 40, 9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = hexA(GLOW[type] || '#FFFFFF', 0.10);
+  ctx.beginPath(); ctx.ellipse(x, y + 2, 52, 10, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // pose: lunge on attacks, lean on dodge, shake + red flash on hurt
+  let lx = 0, rot = 0, alpha = 1, variant = null;
+  if (opts.atk === 'punch') lx = 20 * dir;
+  if (opts.atk === 'kick') { lx = 24 * dir; rot = -0.10 * dir; }
+  if (opts.atk === 'throw') lx = 12 * dir;
+  if (opts.lean) rot = opts.lean;
+  if (opts.ghost) alpha = 0.75;
+  if (opts.hurt) { variant = 'red'; lx += (Math.random() - 0.5) * 4; }
+  if (opts.flash > 0) variant = 'white';
+  if (opts.telegraph) variant = (Math.floor(G.time * 10) % 2 === 0) ? 'red' : null;
+  if (animReady(type)) {
+    ANIM_META = ANIM_SHEETS[ANIM_CHAR[type]];
+    // real motion replaces the old slide-and-tilt fake: drop the lunge offset
+    // on attacks (the frames lunge on their own) and keep a light lean.
+    let fr;
+    if (opts.anim) fr = animFrame(opts.anim, opts.animP || 0, opts.animLoop);
+    else fr = idleFrame(x * 0.013);
+    const alx = (opts.atk ? 0 : lx);
+    drawAnimFigure(x, y, type, dir, fr, h, alpha, variant, alx, opts.hurt || opts.lean ? rot * 0.5 : 0);
+  } else {
+  // sprite not loaded yet — flat placeholder card, never a stickman
+  if (!img || !img.complete || img.naturalWidth === 0) {
+    ctx.save();
+    ctx.fillStyle = '#0D0D16'; ctx.fillRect(x - 40, y - h, 80, h);
+    ctx.strokeStyle = GLOW[type] || '#FFFFFF'; ctx.lineWidth = 2;
+    ctx.strokeRect(x - 40, y - h, 80, h);
+    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(type.toUpperCase(), x, y - h / 2);
+    ctx.restore();
+    return;
+  }
+  const w = h * (img.naturalWidth / img.naturalHeight);
+  const src = (variant && FLASH[type]) ? FLASH[type][variant] : img;
+  ctx.save();
+  ctx.translate(x + lx, y + bob);
+  ctx.rotate(rot);
+  ctx.scale(dir, 1);
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = GLOW[type] || '#FFFFFF';
+  ctx.shadowBlur = 8;
+  ctx.drawImage(src, -w / 2, -h, w, h);
+  ctx.restore();
+  }
+  // stun stars circling the head
+  if (opts.hurt && type !== 'player') {
+    ctx.fillStyle = COL.gold;
+    for (let i = 0; i < 3; i++) {
+      const a = G.time * 5 + i * 2.1;
+      ctx.beginPath(); ctx.arc(x + Math.cos(a) * 26, y - h - 6 + Math.sin(a) * 8, 3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+function draw() {
+  ctx.save();
+  if (G.shake > 0) ctx.translate((Math.random()-0.5)*G.shake, (Math.random()-0.5)*G.shake);
+  drawStage();
+
+  if (G.state === 'fight' || G.state === 'end') {
+    // Draw entities sorted by Y depth
+    const drawnBars = [];
+    corpses.forEach(c => {
+      if (!animReady(c.type)) return;
+      ANIM_META = ANIM_SHEETS[ANIM_CHAR[c.type]];
+      const fr = animFrame('knock', Math.min(0.999, c.t / 0.9));
+      const a = c.t < 1.6 ? 1 : Math.max(0, 1 - (c.t - 1.6) / 0.6);
+      drawAnimFigure(c.x, c.y, c.type, c.dir, fr, drawH(c.type), a, null, 0, 0);
+    });
+    // Dash afterimages — fading cyan ghosts along the dash path.
+    if (animReady('player')) {
+      ghosts.forEach(g => {
+        ANIM_META = ANIM_SHEETS[ANIM_CHAR.player];
+        drawAnimFigure(g.x, g.y, 'player', g.dir, g.fr, drawH('player'), Math.max(0, 0.35 * (1 - g.t / g.life)), 'cyan', 0, 0);
+      });
+    }
+    const list = enemies.map(e => ({ isP: false, y: e.y, e })).concat([{ isP: true, y: player.y }]);
+    list.sort((a, b) => a.y - b.y);
+
+    list.forEach(item => {
+      if (item.isP) {
+        drawFigure(player.x, player.y, COL.gold, {
+          type: 'player', dir: player.facing,
+          atk: player.atkT > 0 ? player.atkKind : '', hurt: player.hurtT > 0, bob: true,
+          anim: playerAnim().clip, animP: playerAnim().p, animLoop: playerAnim().loop,
+          lean: player.dodgeT > 0 ? 0.5 * player.facing : 0, ghost: player.dodgeT > 0
+        });
+        if (player.parryT > 0) {
+          ctx.strokeStyle = COL.cyan; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(player.x, player.y - 60, 56, 0, Math.PI * 2); ctx.stroke();
+        }
+      } else {
+        const e = item.e;
+        drawFigure(e.x, e.y, e.col, {
+          type: e.type, dir: e.facing || -1,
+          flash: e.flashT, telegraph: e.state === 'telegraph' || e.state === 'blast' || e.state === 'sweep',
+          atk: e.state === 'strike' ? 'punch' : '', hurt: e.stunT > 0,
+          anim: enemyAnim(e).clip, animP: enemyAnim(e).p, animLoop: enemyAnim(e).loop,
+          lean: e.state === 'telegraph' ? 0.18 : e.state === 'blast' ? -0.15 : e.state === 'windup' ? 0.1 : e.stunT > 0 ? -0.2 : 0
+        });
+
+        // Compact Enemy Health Bar — bunched bars stagger down 12px per
+        // lane so they never print on top of each other, and no bar climbs
+        // into the banner zone (y 120-162).
+        let barY = e.y - e.h - 14;
+        let lane = 0;
+        drawnBars.forEach(function (b) {
+          if (Math.abs(b.x - e.x) < 60 && Math.abs(b.y - barY) < 12) lane++;
+        });
+        barY = Math.max(barY, 166) + lane * 12;
+        drawnBars.push({ x: e.x, y: barY });
+        ctx.fillStyle = '#000'; ctx.fillRect(e.x - 28, barY, 56, 6);
+        ctx.fillStyle = e.col; ctx.fillRect(e.x - 28, barY, 56 * (e.hp / e.maxHp), 6);
+        // Bosses wear their name over the bar — the tint alone is not
+        // enough to tell a boss from a regular at a glance. The label
+        // is centered, so clamp it: a boss at the spawn edge (x 920)
+        // would print "SUBJECT SEVEN" half off the canvas.
+        if (e.type === 'boss1' || e.type === 'boss2' || e.type === 'vex') {
+          ctx.fillStyle = e.col; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+          ctx.fillText(e.name, Math.max(50, Math.min(910, e.x)), barY - 6);
+        }
+      }
+    });
+
+    // Comic Slash Arcs
+    slashes.forEach(s => {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.scale(s.dir, 1);
+      ctx.strokeStyle = s.col; ctx.lineWidth = s.kind === 'finisher' ? 14 : 8;
+      ctx.shadowColor = s.col; ctx.shadowBlur = 18;
+      ctx.beginPath(); ctx.arc(0, 0, s.kind === 'finisher' ? 140 : 52, -1.1, 1.1); ctx.stroke();
+      ctx.restore();
+    });
+
+    // Projectiles & Particles
+    projectiles.forEach(p => { ctx.fillStyle = COL.gold; ctx.fillRect(p.x - 14, p.y - 3, 28, 6); });
+    rings.forEach(r => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - r.t / r.dur);
+      ctx.strokeStyle = COL.gold; ctx.lineWidth = 6;
+      ctx.shadowColor = COL.gold; ctx.shadowBlur = 18;
+      ctx.beginPath(); ctx.arc(r.cx, r.cy, r.r, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    });
+    // Impact rings — one beat to expand and fade, spawned in applyHit.
+    impacts.forEach(r => {
+      const p = Math.min(1, r.t / r.dur);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - p);
+      ctx.strokeStyle = r.col; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(r.x, r.y, Math.max(1, r.maxR * p), 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    });
+    particles.forEach(p => { ctx.globalAlpha = 1 - p.t/p.life; ctx.fillStyle = p.col; ctx.fillRect(p.x, p.y, 5, 5); });
+    ctx.globalAlpha = 1;
+    floats.forEach(f => {
+      ctx.globalAlpha = 1 - f.t/0.9; ctx.fillStyle = f.col; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(f.txt, f.x, f.y);
+    });
+    ctx.globalAlpha = 1;
+
+    // Top HUD
+    ctx.fillStyle = 'rgba(6,3,14,0.8)'; ctx.fillRect(14, 14, 270, 56);
+    ctx.strokeStyle = COL.red; ctx.lineWidth = 2; ctx.strokeRect(14, 14, 270, 56);
+    ctx.fillStyle = '#FFF'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('JAY SLEEZE HP', 24, 31);
+    ctx.fillStyle = '#222'; ctx.fillRect(24, 36, 240, 10);
+    ctx.fillStyle = player.hp > 30 ? COL.cyan : COL.red; ctx.fillRect(24, 36, 240 * Math.max(0, player.hp / player.maxHp), 10);
+    ctx.fillStyle = COL.gold; ctx.fillText('FEVER ' + Math.floor(player.fever) + '% ' + '★'.repeat(G.tokens) + '☆'.repeat(tokenCap() - G.tokens), 24, 61);
+
+    // Style rank + Fever meter — under the HP box, clear of the banner
+    // (y 120-162), the score (top-right) and the beat bar (y 496+).
+    const rank = styleRank();
+    ctx.fillStyle = 'rgba(6,3,14,0.8)'; ctx.fillRect(14, 78, 270, 36);
+    ctx.strokeStyle = COL.gold; ctx.lineWidth = 2; ctx.strokeRect(14, 78, 270, 36);
+    ctx.fillStyle = RANK_COL[rank]; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('STYLE ' + rank, 24, 93);
+    ctx.fillStyle = '#FFF'; ctx.textAlign = 'right';
+    ctx.fillText(G.styleMoves.size + '/8 MOVES', 264, 93);
+    // Track stays visible even at 0 style; a sliver of fill never
+    // reads as a stray mark (min 6px once any style is banked).
+    ctx.fillStyle = '#2A2438'; ctx.fillRect(24, 99, 240, 8);
+    const styleW = styleEff() > 0 ? Math.max(6, 240 * Math.min(1, styleEff() / 160)) : 0;
+    ctx.fillStyle = RANK_COL[rank]; ctx.fillRect(24, 99, styleW, 8);
+
+    ctx.textAlign = 'right'; ctx.fillStyle = '#FFF'; ctx.font = 'bold 16px monospace';
+    ctx.fillText(`SCORE ${G.score}`, W - 20, 34);
+    if (G.combo > 1) { ctx.fillStyle = COL.gold; ctx.font = '900 22px Arial Black'; ctx.fillText(`${G.combo}x COMBO`, W - 20, 60); }
+
+    // Bottom Beat Bar
+    const off = beatOffset();
+    const hitCol = off <= 0.065 ? COL.gold : off <= 0.13 ? COL.cyan : COL.red;
+    ctx.fillStyle = 'rgba(6,3,14,0.9)'; ctx.fillRect(0, 496, W, 48);
+    ctx.strokeStyle = hitCol; ctx.lineWidth = 2;
+    const pulseR = 12 + (1 - Math.min(1, off / beatDur)) * 18;
+    ctx.beginPath(); ctx.arc(W/2, 520, pulseR, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = hitCol; ctx.beginPath(); ctx.arc(W/2, 520, 10, 0, Math.PI*2); ctx.fill();
+    ctx.font = 'bold 12px monospace'; ctx.textAlign = 'left';
+    // Track name rides with the BPM — the player always sees what is
+    // playing. (Cooldown readouts moved right to make room.)
+    const trackLabel = G.imported ? 'YOUR TRACK' : (G.track ? G.track.name : '');
+    ctx.fillText(bpm + ' BPM' + (trackLabel ? ' · ' + trackLabel : ''), 20, 524);
+    // Cooldown readout — parry / dash, left of the beat ring.
+    const parryTxt = player.parryCd > 0 ? 'PARRY ' + player.parryCd.toFixed(1) + 's' : 'PARRY OK';
+    const dashTxt = player.dodgeCd > 0 ? 'DASH ' + player.dodgeCd.toFixed(1) + 's' : 'DASH OK';
+    ctx.fillStyle = player.parryCd > 0 ? '#8E94A5' : COL.cyan;
+    ctx.fillText(parryTxt, 210, 524);
+    ctx.fillStyle = player.dodgeCd > 0 ? '#8E94A5' : COL.cyan;
+    ctx.fillText(dashTxt, 310, 524);
+    ctx.textAlign = 'right'; ctx.fillText(off <= 0.065 ? '★ PERFECT WINDOW ★' : 'BEAT SYNC', W - 20, 524);
+
+    // Banner — pill grows to fit the text (long lines like the VEX
+    // warning used to spill past the edges), font shrinks as a backstop.
+    if (G.bannerT > 0) {
+      let fs = 20;
+      ctx.font = '900 ' + fs + 'px Arial Black';
+      let bw = ctx.measureText(G.banner).width + 44;
+      while (bw > W - 40 && fs > 12) {
+        fs -= 2;
+        ctx.font = '900 ' + fs + 'px Arial Black';
+        bw = ctx.measureText(G.banner).width + 44;
+      }
+      const bx = W / 2 - bw / 2;
+      ctx.fillStyle = 'rgba(6,3,14,0.9)'; ctx.fillRect(bx, 120, bw, 42);
+      ctx.strokeStyle = COL.gold; ctx.strokeRect(bx, 120, bw, 42);
+      ctx.fillStyle = COL.gold; ctx.textAlign = 'center';
+      ctx.fillText(G.banner, W / 2, 148);
+    }
+
+    // Telegraph markers — drawn last so the banner pill can never
+    // cover the "!" on a tall enemy like VEX.
+    enemies.forEach(e => {
+      if (e.state === 'telegraph') {
+        // COUNTER prompt — gold ring + gold text, on top of the red
+        // danger mark. Parry while it is up and the prompt eats the
+        // strike instead of the strike-time parry.
+        ctx.strokeStyle = COL.gold; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(e.x, e.y, 62, 18, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = COL.gold; ctx.font = '900 14px Arial Black'; ctx.textAlign = 'center';
+        ctx.fillText('COUNTER', e.x, e.y - e.h - 44);
+        ctx.strokeStyle = COL.red; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(e.x, e.y, 52, 12, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = COL.red; ctx.font = '900 26px Arial Black'; ctx.textAlign = 'center';
+        ctx.fillText('!', e.x, e.y - e.h - 22);
+      }
+      if (e.state === 'blast' || e.state === 'sweep') {
+        // Gold ring only — the banner already shouts the warning, and
+        // a gold "!" would vanish into the gold banner text.
+        ctx.strokeStyle = COL.gold; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(e.x, e.y - 60, 46 + Math.sin(G.time * 12) * 6, 0, Math.PI * 2); ctx.stroke();
+      }
+    });
+  }
+  ctx.restore();
+}
+
+let lastT = performance.now();
+function loop(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+  if (!G.paused) {
+    scheduleMusic();
+    if (G.state === 'fight') update(dt);
+    else G.time += dt;
+  }
+  draw();
+  syncPadCooldowns();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>

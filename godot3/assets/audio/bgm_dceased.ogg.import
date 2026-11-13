@@ -1,0 +1,15 @@
+[remap]
+
+importer="ogg_vorbis"
+type="AudioStreamOGGVorbis"
+path="res://.import/bgm_dceased.ogg-2cf8b0874a6737d24751b6f7c292d482.oggstr"
+
+[deps]
+
+source_file="res://assets/audio/bgm_dceased.ogg"
+dest_files=[ "res://.import/bgm_dceased.ogg-2cf8b0874a6737d24751b6f7c292d482.oggstr" ]
+
+[params]
+
+loop=true
+loop_offset=0

@@ -1,0 +1,9 @@
+.import/
+.godot/
+*.vpk
+*.pck
+eboot.bin
+SLEEZE
+build/
+assets/sheets/
+*.tmp

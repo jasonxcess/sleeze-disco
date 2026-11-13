@@ -1,0 +1,15 @@
+[remap]
+
+importer="ogg_vorbis"
+type="AudioStreamOGGVorbis"
+path="res://.import/bgm_bigscreen.ogg-175ccf826a7d2d7636c2bf18ab73adee.oggstr"
+
+[deps]
+
+source_file="res://assets/audio/bgm_bigscreen.ogg"
+dest_files=[ "res://.import/bgm_bigscreen.ogg-175ccf826a7d2d7636c2bf18ab73adee.oggstr" ]
+
+[params]
+
+loop=true
+loop_offset=0

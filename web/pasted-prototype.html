@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SLEEZE DISCO — Beat Kune Do</title>
+<style>
+  :root {
+    --gold: #FFC83C; --red: #FF2A4B; --cyan: #00F0FF; --pink: #FF33CC;
+    --purple: #9D4EDD; --ink: #06030E; --panel: #0E0A1C; --mut: #8E94A5;
+    --font-display: 'Arial Black', Impact, sans-serif;
+    --font-mono: 'Courier New', Courier, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+  html, body { background: var(--ink); color: #FFF; font-family: var(--font-mono); overflow-x: hidden; width: 100%; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+  .masthead { text-align: center; padding: 12px 10px 8px; width: 100%; }
+  .masthead h1 { font-family: var(--font-display); font-size: clamp(26px, 6vw, 44px); letter-spacing: 2px; line-height: 1; text-shadow: 3px 3px 0 var(--red), 0 0 20px rgba(255,42,75,0.6); }
+  .masthead h1 span { color: var(--gold); }
+  .masthead .sub { font-size: 10px; color: var(--cyan); letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
+
+  .stage { width: 100%; max-width: 960px; padding: 0 8px; }
+  #wrap { position: relative; width: 100%; aspect-ratio: 960/544; background: #090514; border: 2px solid var(--red); box-shadow: 0 0 25px rgba(255, 42, 75, 0.35); overflow: hidden; border-radius: 4px; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Overlay Screens */
+  .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: radial-gradient(circle at center, rgba(20,10,40,0.92) 0%, rgba(5,2,12,0.98) 100%); padding: 16px; z-index: 10; }
+  .hidden { display: none !important; }
+  .tag { font-size: 11px; color: var(--gold); letter-spacing: 3px; margin-bottom: 6px; text-transform: uppercase; font-weight: bold; }
+  .big { font-family: var(--font-display); font-size: clamp(24px, 5vw, 46px); line-height: 1; text-shadow: 3px 3px 0 var(--red); margin-bottom: 10px; }
+  .desc { font-size: clamp(11px, 2.2vw, 13px); line-height: 1.5; color: #D0D5E0; max-width: 560px; margin-bottom: 14px; }
+  .desc b { color: var(--cyan); }
+
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; max-width: 480px; }
+  .btn { flex: 1 1 180px; padding: 12px 16px; background: var(--panel); color: #FFF; border: 2px solid var(--red); font-family: var(--font-display); font-size: 14px; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; transition: 0.1s; }
+  .btn:active, .btn:hover { background: var(--red); color: #FFF; box-shadow: 0 0 15px var(--red); transform: scale(0.98); }
+  .btn.primary { background: var(--red); border-color: var(--gold); }
+  .btn.ghost { border-color: #444; color: #AAA; }
+
+  /* Mobile / Touch Pad below canvas for phone testing */
+  .touch-pad { display: none; width: 100%; max-width: 960px; padding: 12px 8px; gap: 10px; justify-content: space-between; }
+  @media (max-width: 820px), (pointer: coarse) {
+    .touch-pad { display: flex; }
+  }
+  .pad-group { display: grid; grid-template-columns: repeat(3, 54px); grid-template-rows: repeat(2, 54px); gap: 6px; }
+  .t-btn { background: #130E24; border: 2px solid #332954; border-radius: 8px; color: #FFF; font-family: var(--font-display); font-size: 13px; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+  .t-btn:active { background: var(--red); border-color: var(--gold); }
+  .t-btn.act-p { border-color: var(--pink); color: var(--pink); }
+  .t-btn.act-k { border-color: var(--cyan); color: var(--cyan); }
+  .t-btn.act-d { border-color: var(--gold); color: var(--gold); }
+  .t-btn.act-t { border-color: var(--red); background: rgba(255,42,75,0.2); }
+
+  .controls-bar { width: 100%; max-width: 960px; padding: 8px 10px; display: flex; justify-content: space-between; font-size: 11px; color: var(--mut); flex-wrap: wrap; gap: 6px; }
+  .controls-bar b { color: #FFF; background: var(--red); padding: 1px 5px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <h1>SLEEZE <span>DISCO</span></h1>
+  <p class="sub">BEAT KUNE DO • NEON ARCADE PROTOTYPE (960×544)</p>
+</header>
+
+<main class="stage">
+  <div id="wrap">
+    <canvas id="game" width="960" height="544"></canvas>
+
+    <!-- TITLE SCREEN -->
+    <div id="scr-title" class="screen">
+      <div class="tag">Harmony Corp Took The Stage</div>
+      <div class="big">SLEEZE DISCO</div>
+      <div class="desc">Strike, dodge, and parry strictly on the beat.<br><b>PERFECT (±60ms)</b> deals +50% damage and charges your <b>TAKEDOWN</b>.</div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="showScreen('mode')">▶ ENTER THE CLUB</button>
+        <button class="btn ghost" onclick="showScreen('howto')">CONTROLS</button>
+      </div>
+    </div>
+
+    <!-- MODE SELECT -->
+    <div id="scr-mode" class="screen hidden">
+      <div class="tag">Select Track</div>
+      <div class="big">PICK YOUR NIGHT</div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="startStory(1)">CH.1 NEON ALLEY (100 BPM)</button>
+        <button class="btn" onclick="startStory(2)">CH.2 DIVE BAR (120 BPM)</button>
+        <button class="btn" onclick="startStory(3)">CH.3 IDOL VEX (140 BPM)</button>
+        <button class="btn ghost" onclick="startInfinite()">∞ ENDLESS DISCO</button>
+      </div>
+    </div>
+
+    <!-- HOW TO PLAY -->
+    <div id="scr-howto" class="screen hidden">
+      <div class="tag">Combat Manual</div>
+      <div class="big">BEAT KUNE DO</div>
+      <div class="desc" style="text-align:left; background:#000; padding:12px; border:1px solid #333;">
+        <b>ARROWS / D-PAD:</b> Move across the dancefloor<br>
+        <b>[J] / □ PUNCH:</b> Fast beat jab &nbsp;|&nbsp; <b>[K] / △ KICK:</b> Heavy knockback<br>
+        <b>[L] / ○ THROW:</b> Ranged neon drumstick<br>
+        <b>[SPACE] / ✕ DODGE:</b> Dash through red attacks<br>
+        <b>[S] / L1 PARRY:</b> Deflect & stun attackers<br>
+        <b>[E] / R1 TAKEDOWN:</b> Screen-clearing finisher at 100% meter
+      </div>
+      <button class="btn primary" onclick="showScreen('title')">GOT IT</button>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="scr-end" class="screen hidden">
+      <div class="tag" id="endTag">RESULTS</div>
+      <div class="big" id="endTitle">STAGE CLEAR</div>
+      <div class="desc" id="resultsBox"></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="retryFight()">↻ PLAY AGAIN</button>
+        <button class="btn ghost" onclick="showScreen('title')">TITLE</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ON-SCREEN CONTROLS FOR PHONE / TOUCH TESTING -->
+<div class="touch-pad">
+  <div class="pad-group">
+    <div></div><div class="t-btn" ontouchstart="setKey('ArrowUp',true)" ontouchend="setKey('ArrowUp',false)">▲</div><div></div>
+    <div class="t-btn" ontouchstart="setKey('ArrowLeft',true)" ontouchend="setKey('ArrowLeft',false)">◀</div>
+    <div class="t-btn" ontouchstart="setKey('ArrowDown',true)" ontouchend="setKey('ArrowDown',false)">▼</div>
+    <div class="t-btn" ontouchstart="setKey('ArrowRight',true)" ontouchend="setKey('ArrowRight',false)">▶</div>
+  </div>
+  <div class="pad-group">
+    <div class="t-btn act-k" ontouchstart="doAttack('kick')">△ KICK</div>
+    <div class="t-btn act-t" ontouchstart="doTakedown()">R1 FIN</div>
+    <div class="t-btn act-d" ontouchstart="doParry()">L1 PAR</div>
+    <div class="t-btn act-p" ontouchstart="doAttack('punch')">□ HIT</div>
+    <div class="t-btn act-d" ontouchstart="doDodge()">✕ DASH</div>
+    <div class="t-btn" ontouchstart="doAttack('throw')">○ THW</div>
+  </div>
+</div>
+
+<div class="controls-bar">
+  <span><b>J</b> Punch &nbsp;<b>K</b> Kick &nbsp;<b>L</b> Throw &nbsp;<b>SPACE</b> Dodge &nbsp;<b>S</b> Parry &nbsp;<b>E</b> Takedown</span>
+  <span id="saveLine">HIGH <b>0</b></span>
+</div>
+
+<script>
+'use strict';
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+const W = 960, H = 544;
+
+const COL = {
+  gold: '#FFC83C', red: '#FF2A4B', cyan: '#00F0FF', pink: '#FF33CC',
+  purple: '#9D4EDD', white: '#FFFFFF', dark: '#06030E'
+};
+
+/* ---------- WebAudio Synth Engine ---------- */
+let AC = null, master = null, bpm = 120, beatDur = 0.5, nextBeatTime = 0, beatIndex = 0, lastBeatTime = 0, musicOn = false;
+const BASS = [55, 55, 65.41, 49, 55, 55, 82.41, 73.42];
+const LEAD = [220, 261.63, 329.63, 392, 329.63, 261.63, 220, 196];
+
+function initAudio() {
+  if (!AC) {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.45; master.connect(AC.destination);
+  }
+  if (AC.state === 'suspended') AC.resume();
+}
+
+function tone(freq, t, dur, type, vol, slide) {
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
+}
+
+function startMusic(b) {
+  initAudio(); bpm = b; beatDur = 60 / bpm; beatIndex = 0;
+  nextBeatTime = AC.currentTime + 0.05; lastBeatTime = nextBeatTime - beatDur; musicOn = true;
+}
+function stopMusic() { musicOn = false; }
+
+function scheduleMusic() {
+  if (!AC || !musicOn) return;
+  while (nextBeatTime < AC.currentTime + 0.15) {
+    const t = nextBeatTime, i = beatIndex;
+    tone(145, t, 0.16, 'sine', 0.6, 42); // Kick
+    tone(BASS[i % BASS.length], t, beatDur * 0.85, 'sawtooth', 0.16); // Disco Bass
+    tone(LEAD[i % LEAD.length], t, beatDur * 0.4, 'square', 0.06); // Synth Lead
+    lastBeatTime = t; nextBeatTime += beatDur; beatIndex++;
+  }
+}
+
+function beatOffset() {
+  if (!musicOn || !AC) return 999;
+  const now = AC.currentTime;
+  return Math.min(Math.abs(nextBeatTime - now), Math.abs(now - lastBeatTime));
+}
+
+function judge() {
+  const off = beatOffset();
+  if (off <= 0.065) return { name: 'PERFECT!', mult: 1.5, color: COL.gold };
+  if (off <= 0.13) return { name: 'GOOD', mult: 1.1, color: COL.cyan };
+  return { name: 'HIT', mult: 1.0, color: '#AAA' };
+}
+
+/* ---------- Game State ---------- */
+const G = { state: 'title', mode: 'story', chapter: 1, wave: 1, score: 0, combo: 0, maxCombo: 0, perfects: 0, shake: 0, time: 0, spawnQueue: [], spawnTimer: 0, banner: '', bannerT: 0, hitStop: 0 };
+const player = { x: 240, y: 410, hp: 100, maxHp: 100, meter: 0, facing: 1, dodgeT: 0, parryT: 0, atkT: 0, atkKind: '', hurtT: 0 };
+let enemies = [], slashes = [], floats = [], particles = [], projectiles = [], lastFight = { mode: 'story', ch: 1 };
+
+function showScreen(name) {
+  ['title', 'mode', 'howto', 'end'].forEach(n => document.getElementById('scr-' + n).classList.toggle('hidden', n !== name));
+  if (name === 'title') { stopMusic(); G.state = 'title'; }
+}
+
+function startStory(ch) {
+  lastFight = { mode: 'story', ch }; G.mode = 'story'; G.chapter = ch;
+  const b = ch === 1 ? 100 : ch === 2 ? 120 : 140;
+  G.spawnQueue = ch === 1 ? ['stan','stan','charger','stan','stan'] : ch === 2 ? ['charger','stan','bruiser','charger','bruiser'] : ['stan','charger','vex'];
+  beginFight(b, ch === 3 ? 'BOSS: IDOL VEX' : 'CHAPTER ' + ch);
+}
+
+function startInfinite() {
+  lastFight = { mode: 'inf', ch: 1 }; G.mode = 'inf'; G.wave = 1;
+  G.spawnQueue = ['stan','stan','charger','bruiser'];
+  beginFight(120, 'ENDLESS DISCO — WAVE 1');
+}
+
+function retryFight() { lastFight.mode === 'story' ? startStory(lastFight.ch) : startInfinite(); }
+
+function beginFight(b, title) {
+  showScreen('none'); startMusic(b);
+  Object.assign(player, { x: 240, y: 410, hp: 100, meter: 0, facing: 1, dodgeT: 0, parryT: 0, atkT: 0, hurtT: 0 });
+  enemies = []; slashes = []; floats = []; particles = []; projectiles = [];
+  G.score = 0; G.combo = 0; G.maxCombo = 0; G.perfects = 0; G.state = 'fight'; G.spawnTimer = 0.5;
+  G.banner = title; G.bannerT = 2.2;
+}
+
+function spawnEnemy(type) {
+  const stats = {
+    stan:    { hp: 35,  spd: 65,  dmg: 8,  col: COL.cyan,   w: 44, h: 115, name: 'BOUNCER' },
+    charger: { hp: 45,  spd: 95,  dmg: 14, col: COL.red,    w: 46, h: 118, name: 'RUSHER' },
+    bruiser: { hp: 95,  spd: 42,  dmg: 18, col: COL.purple, w: 60, h: 135, name: 'HEAVY' },
+    vex:     { hp: 280, spd: 60,  dmg: 16, col: COL.pink,   w: 54, h: 130, name: 'IDOL VEX' }
+  }[type];
+  enemies.push({ type, x: 920, y: 360 + Math.random() * 90, hp: stats.hp, maxHp: stats.hp, spd: stats.spd, dmg: stats.dmg, col: stats.col, w: stats.w, h: stats.h, name: stats.name, windup: 0, stunT: 0, flashT: 0 });
+}
+
+/* ---------- Combat Actions ---------- */
+function addFloat(x, y, txt, col) { floats.push({ x, y, txt, col, t: 0 }); }
+function burst(x, y, col, n) {
+  for (let i = 0; i < n; i++) particles.push({ x, y, vx: (Math.random()-0.5)*360, vy: (Math.random()-0.8)*280, col, t: 0, life: 0.4 + Math.random()*0.25 });
+}
+
+function doAttack(kind) {
+  if (G.state !== 'fight' || player.atkT > 0) return;
+  const j = judge();
+  player.atkT = 0.2; player.atkKind = kind;
+  tone(j.name === 'PERFECT!' ? 780 : 420, AC ? AC.currentTime : 0, 0.08, 'square', 0.15, 220);
+
+  if (kind === 'throw') {
+    projectiles.push({ x: player.x + 30 * player.facing, y: player.y - 65, vx: 680 * player.facing, j });
+    return;
+  }
+
+  // Comic-book neon slash arc
+  slashes.push({ x: player.x + 55 * player.facing, y: player.y - 60, dir: player.facing, kind, col: j.color, t: 0 });
+
+  const reach = kind === 'kick' ? 135 : 105;
+  const baseDmg = kind === 'kick' ? 16 : 11;
+  let hit = false;
+
+  enemies.forEach(e => {
+    if (Math.abs(e.x - player.x) < reach && Math.abs(e.y - player.y) < 55 && Math.sign(e.x - player.x) === player.facing) {
+      hit = true;
+      const dmg = Math.round(baseDmg * j.mult);
+      e.hp -= dmg; e.flashT = 0.12; e.x += 18 * player.facing;
+      G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
+      if (j.name === 'PERFECT!') G.perfects++;
+      G.score += dmg * (1 + Math.floor(G.combo / 5));
+      player.meter = Math.min(100, player.meter + (j.name === 'PERFECT!' ? 16 : 9));
+      addFloat(e.x, e.y - e.h - 10, j.name + ' -' + dmg, j.color);
+      burst(e.x, e.y - 60, j.color, j.name === 'PERFECT!' ? 16 : 8);
+      if (j.name === 'PERFECT!') { G.hitStop = 0.04; G.shake = 7; }
+    }
+  });
+  if (!hit) addFloat(player.x, player.y - 130, j.name, j.color);
+}
+
+function doDodge() {
+  if (G.state !== 'fight' || player.dodgeT > 0) return;
+  player.dodgeT = 0.32; player.x = Math.max(60, Math.min(900, player.x + 140 * player.facing));
+  burst(player.x, player.y - 50, COL.cyan, 10);
+  addFloat(player.x, player.y - 130, 'PHASE DASH', COL.cyan);
+}
+
+function doParry() {
+  if (G.state !== 'fight' || player.parryT > 0) return;
+  player.parryT = 0.38;
+  addFloat(player.x, player.y - 130, 'PARRY STANCE', COL.gold);
+}
+
+function doTakedown() {
+  if (G.state !== 'fight' || player.meter < 100) return;
+  player.meter = 0; G.shake = 15; G.hitStop = 0.08;
+  G.banner = '★ BEAT DROP FINISHER ★'; G.bannerT = 1.5;
+  slashes.push({ x: player.x, y: player.y - 60, dir: player.facing, kind: 'finisher', col: COL.gold, t: 0 });
+  enemies.forEach(e => {
+    if (Math.abs(e.x - player.x) < 320) {
+      e.hp -= 55; e.flashT = 0.2; e.stunT = 1.5;
+      burst(e.x, e.y - 60, COL.gold, 22);
+      addFloat(e.x, e.y - e.h - 20, 'SMASH -55!', COL.gold);
+    }
+  });
+}
+
+/* ---------- Input ---------- */
+const keys = {};
+function setKey(k, val) { keys[k] = val; initAudio(); }
+window.addEventListener('keydown', e => {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  if (e.repeat) return;
+  keys[e.key] = true; initAudio();
+  const k = e.key.toLowerCase();
+  if (G.state === 'fight') {
+    if (k === 'j') doAttack('punch');
+    if (k === 'k') doAttack('kick');
+    if (k === 'l') doAttack('throw');
+    if (k === ' ') doDodge();
+    if (k === 's') doParry();
+    if (k === 'e') doTakedown();
+  }
+});
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+/* ---------- Update Loop ---------- */
+function update(dt) {
+  G.time += dt;
+  if (G.bannerT > 0) G.bannerT -= dt;
+  if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 28);
+  if (G.hitStop > 0) { G.hitStop -= dt; return; }
+
+  // Spawning
+  if (G.spawnQueue.length > 0) {
+    G.spawnTimer -= dt;
+    if (G.spawnTimer <= 0) { spawnEnemy(G.spawnQueue.shift()); G.spawnTimer = 1.3; }
+  } else if (enemies.length === 0) {
+    if (G.mode === 'inf') {
+      G.wave++; G.banner = 'WAVE ' + G.wave; G.bannerT = 2;
+      G.spawnQueue = ['stan','charger','bruiser','stan','charger'];
+    } else {
+      G.state = 'end'; stopMusic();
+      document.getElementById('endTag').textContent = 'STAGE CLEARED';
+      document.getElementById('endTitle').textContent = 'CROWD CONQUERED';
+      document.getElementById('resultsBox').innerHTML = `SCORE: <b>${G.score}</b> &nbsp;|&nbsp; MAX COMBO: <b>${G.maxCombo}x</b> &nbsp;|&nbsp; PERFECT HITS: <b>${G.perfects}</b>`;
+      showScreen('end'); return;
+    }
+  }
+
+  // Player movement
+  let mx = (keys['ArrowRight'] ? 1 : 0) - (keys['ArrowLeft'] ? 1 : 0);
+  let my = (keys['ArrowDown'] ? 1 : 0) - (keys['ArrowUp'] ? 1 : 0);
+  if (mx !== 0) player.facing = mx;
+  player.x = Math.max(60, Math.min(900, player.x + mx * 280 * dt));
+  player.y = Math.max(320, Math.min(480, player.y + my * 180 * dt));
+
+  if (player.dodgeT > 0) player.dodgeT -= dt;
+  if (player.parryT > 0) player.parryT -= dt;
+  if (player.atkT > 0) player.atkT -= dt;
+  if (player.hurtT > 0) player.hurtT -= dt;
+
+  // Projectiles
+  projectiles = projectiles.filter(p => {
+    p.x += p.vx * dt;
+    let hit = false;
+    enemies.forEach(e => {
+      if (!hit && Math.abs(e.x - p.x) < 35 && Math.abs(e.y - 60 - p.y) < 60) {
+        e.hp -= Math.round(10 * p.j.mult); e.flashT = 0.1; hit = true;
+        burst(e.x, e.y - 60, COL.gold, 8);
+      }
+    });
+    return !hit && p.x > 0 && p.x < W;
+  });
+
+  // Enemies
+  enemies.forEach(e => {
+    if (e.flashT > 0) e.flashT -= dt;
+    if (e.stunT > 0) { e.stunT -= dt; return; }
+    const dx = player.x - e.x, dy = player.y - e.y, dist = Math.hypot(dx, dy);
+    if (dist > 72) {
+      e.x += (dx / dist) * e.spd * dt;
+      e.y += (dy / dist) * e.spd * 0.6 * dt;
+    } else {
+      e.windup += dt;
+      if (e.windup >= 0.75) {
+        e.windup = 0;
+        if (player.parryT > 0) {
+          e.stunT = 1.6; G.score += 200; player.meter = Math.min(100, player.meter + 25);
+          addFloat(e.x, e.y - e.h - 15, 'PARRIED!', COL.cyan); burst(e.x, e.y - 60, COL.cyan, 15);
+        } else if (player.dodgeT <= 0) {
+          player.hp -= e.dmg; player.hurtT = 0.25; G.combo = 0; G.shake = 9;
+          addFloat(player.x, player.y - 130, '-' + e.dmg, COL.red);
+          if (player.hp <= 0) {
+            G.state = 'end'; stopMusic();
+            document.getElementById('endTag').textContent = 'BEAT DROPPED';
+            document.getElementById('endTitle').textContent = 'KNOCKED OUT';
+            document.getElementById('resultsBox').innerHTML = `FINAL SCORE: <b>${G.score}</b> &nbsp;|&nbsp; MAX COMBO: <b>${G.maxCombo}x</b>`;
+            showScreen('end');
+          }
+        }
+      }
+    }
+  });
+  enemies = enemies.filter(e => e.hp > 0);
+
+  slashes.forEach(s => s.t += dt); slashes = slashes.filter(s => s.t < 0.18);
+  floats.forEach(f => { f.t += dt; f.y -= 45 * dt; }); floats = floats.filter(f => f.t < 0.9);
+  particles.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 550 * dt; });
+  particles = particles.filter(p => p.t < p.life);
+}
+
+/* ---------- Stylized Neon Stage & Fighter Rendering ---------- */
+function drawStage() {
+  // Deep synthwave nightclub backdrop
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#090318'); grad.addColorStop(0.55, '#170836'); grad.addColorStop(1, '#06020D');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+
+  // Beat-reactive background equalizer bars & neon pillars
+  const off = beatOffset();
+  const pulse = musicOn ? Math.max(0, 1 - off / beatDur) : 0.2;
+  for (let i = 0; i < 16; i++) {
+    const bh = 40 + Math.sin(G.time * 4 + i) * 30 + pulse * 90;
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 42, 75, 0.14)' : 'rgba(0, 240, 255, 0.12)';
+    ctx.fillRect(i * 62 + 10, 310 - bh, 44, bh);
+  }
+
+  // Perspective neon dancefloor grid
+  ctx.fillStyle = '#0B061A'; ctx.fillRect(0, 310, W, H - 310);
+  ctx.strokeStyle = `rgba(255, 51, 204, ${0.22 + pulse * 0.25})`; ctx.lineWidth = 2;
+  for (let y = 310; y <= 490; y += 36) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  for (let x = -200; x <= W + 200; x += 90) {
+    ctx.beginPath(); ctx.moveTo(W/2 + (x - W/2)*0.45, 310); ctx.lineTo(x, 490); ctx.stroke();
+  }
+}
+
+function drawStylizedFighter(x, y, w, h, mainCol, facing, opts) {
+  const bob = Math.sin(G.time * (bpm / 60) * Math.PI * 2) * 4;
+  const lunge = opts.atk ? 22 * facing : 0;
+  const lean = opts.dodge ? 0.35 * facing : (opts.atk ? 0.15 * facing : 0);
+
+  ctx.save();
+  // Ground shadow & neon ring
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.beginPath(); ctx.ellipse(x, y, w * 0.7, 10, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = mainCol; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(x, y, w * 0.85, 13, 0, 0, Math.PI * 2); ctx.stroke();
+
+  ctx.translate(x + lunge, y + bob);
+  ctx.rotate(lean);
+  ctx.scale(facing, 1);
+  if (opts.dodge) ctx.globalAlpha = 0.55;
+
+  const bodyCol = opts.flash ? '#FFFFFF' : (opts.windup ? COL.red : '#0E0B1A');
+  const rimCol = opts.flash ? '#FFFFFF' : mainCol;
+
+  // Neon rim glow
+  ctx.shadowColor = rimCol; ctx.shadowBlur = 16;
+  ctx.strokeStyle = rimCol; ctx.lineWidth = 3; ctx.fillStyle = bodyCol;
+
+  // Stylized Legs (wide martial arts stance)
+  ctx.beginPath();
+  ctx.moveTo(-10, -h * 0.42); ctx.lineTo(-22, 0); ctx.lineTo(-8, 0); ctx.lineTo(0, -h * 0.35);
+  ctx.lineTo(12, 0); ctx.lineTo(26, 0); ctx.lineTo(12, -h * 0.42);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Sharp Jacket Torso
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.48, -h * 0.78); ctx.lineTo(w * 0.48, -h * 0.78);
+  ctx.lineTo(w * 0.34, -h * 0.40); ctx.lineTo(-w * 0.34, -h * 0.40);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Head & Visor
+  ctx.beginPath(); ctx.arc(0, -h * 0.88, w * 0.32, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = rimCol;
+  ctx.fillRect(2, -h * 0.91, w * 0.28, 6); // Glowing cyber-visor
+
+  // Dynamic Striking Arm
+  ctx.strokeStyle = rimCol; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (opts.atk) {
+    ctx.moveTo(8, -h * 0.72); ctx.lineTo(w * 1.15, -h * 0.72); // Extended punch
+  } else {
+    ctx.moveTo(-8, -h * 0.72); ctx.lineTo(16, -h * 0.58); ctx.lineTo(24, -h * 0.72); // Guard stance
+  }
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function draw() {
+  ctx.save();
+  if (G.shake > 0) ctx.translate((Math.random()-0.5)*G.shake, (Math.random()-0.5)*G.shake);
+  drawStage();
+
+  if (G.state === 'fight' || G.state === 'end') {
+    // Draw entities sorted by Y depth
+    const list = enemies.map(e => ({ isP: false, y: e.y, e })).concat([{ isP: true, y: player.y }]);
+    list.sort((a, b) => a.y - b.y);
+
+    list.forEach(item => {
+      if (item.isP) {
+        drawStylizedFighter(player.x, player.y, 48, 122, COL.gold, player.facing, { atk: player.atkT > 0, dodge: player.dodgeT > 0 });
+        if (player.parryT > 0) {
+          ctx.strokeStyle = COL.cyan; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(player.x, player.y - 60, 56, 0, Math.PI * 2); ctx.stroke();
+        }
+      } else {
+        const e = item.e;
+        drawStylizedFighter(e.x, e.y, e.w, e.h, e.col, e.x > player.x ? -1 : 1, { flash: e.flashT > 0, windup: e.windup > 0.35 });
+        // Compact Enemy Health Bar
+        ctx.fillStyle = '#000'; ctx.fillRect(e.x - 28, e.y - e.h - 14, 56, 6);
+        ctx.fillStyle = e.col; ctx.fillRect(e.x - 28, e.y - e.h - 14, 56 * (e.hp / e.maxHp), 6);
+      }
+    });
+
+    // Comic Slash Arcs
+    slashes.forEach(s => {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.scale(s.dir, 1);
+      ctx.strokeStyle = s.col; ctx.lineWidth = s.kind === 'finisher' ? 14 : 8;
+      ctx.shadowColor = s.col; ctx.shadowBlur = 18;
+      ctx.beginPath(); ctx.arc(0, 0, s.kind === 'finisher' ? 140 : 52, -1.1, 1.1); ctx.stroke();
+      ctx.restore();
+    });
+
+    // Projectiles & Particles
+    projectiles.forEach(p => { ctx.fillStyle = COL.gold; ctx.fillRect(p.x - 14, p.y - 3, 28, 6); });
+    particles.forEach(p => { ctx.globalAlpha = 1 - p.t/p.life; ctx.fillStyle = p.col; ctx.fillRect(p.x, p.y, 5, 5); });
+    ctx.globalAlpha = 1;
+    floats.forEach(f => {
+      ctx.globalAlpha = 1 - f.t/0.9; ctx.fillStyle = f.col; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(f.txt, f.x, f.y);
+    });
+    ctx.globalAlpha = 1;
+
+    // Top HUD
+    ctx.fillStyle = 'rgba(6,3,14,0.8)'; ctx.fillRect(14, 14, 270, 56);
+    ctx.strokeStyle = COL.red; ctx.lineWidth = 2; ctx.strokeRect(14, 14, 270, 56);
+    ctx.fillStyle = '#FFF'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('JAY SLEEZE HP', 24, 31);
+    ctx.fillStyle = '#222'; ctx.fillRect(24, 36, 240, 10);
+    ctx.fillStyle = player.hp > 30 ? COL.cyan : COL.red; ctx.fillRect(24, 36, 240 * Math.max(0, player.hp / player.maxHp), 10);
+    ctx.fillStyle = COL.gold; ctx.fillText(`FINISHER [E]: ${Math.floor(player.meter)}%`, 24, 61);
+
+    ctx.textAlign = 'right'; ctx.fillStyle = '#FFF'; ctx.font = 'bold 16px monospace';
+    ctx.fillText(`SCORE ${G.score}`, W - 20, 34);
+    if (G.combo > 1) { ctx.fillStyle = COL.gold; ctx.font = '900 22px Arial Black'; ctx.fillText(`${G.combo}x COMBO`, W - 20, 60); }
+
+    // Bottom Beat Bar
+    const off = beatOffset();
+    const hitCol = off <= 0.065 ? COL.gold : off <= 0.13 ? COL.cyan : COL.red;
+    ctx.fillStyle = 'rgba(6,3,14,0.9)'; ctx.fillRect(0, 496, W, 48);
+    ctx.strokeStyle = hitCol; ctx.lineWidth = 2;
+    const pulseR = 12 + (1 - Math.min(1, off / beatDur)) * 18;
+    ctx.beginPath(); ctx.arc(W/2, 520, pulseR, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = hitCol; ctx.beginPath(); ctx.arc(W/2, 520, 10, 0, Math.PI*2); ctx.fill();
+    ctx.font = 'bold 12px monospace'; ctx.textAlign = 'left'; ctx.fillText(`${bpm} BPM`, 20, 524);
+    ctx.textAlign = 'right'; ctx.fillText(off <= 0.065 ? '★ PERFECT WINDOW ★' : 'BEAT SYNC', W - 20, 524);
+
+    // Banner
+    if (G.bannerT > 0) {
+      ctx.fillStyle = 'rgba(6,3,14,0.9)'; ctx.fillRect(W/2 - 220, 120, 440, 42);
+      ctx.strokeStyle = COL.gold; ctx.strokeRect(W/2 - 220, 120, 440, 42);
+      ctx.fillStyle = COL.gold; ctx.font = '900 20px Arial Black'; ctx.textAlign = 'center';
+      ctx.fillText(G.banner, W/2, 148);
+    }
+  }
+  ctx.restore();
+}
+
+let lastT = performance.now();
+function loop(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+  scheduleMusic();
+  if (G.state === 'fight') update(dt);
+  else G.time += dt;
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

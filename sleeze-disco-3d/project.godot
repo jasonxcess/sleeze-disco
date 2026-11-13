@@ -1,0 +1,55 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=4
+
+[application]
+
+config/name="SLEEZE DISCO 3D"
+run/main_scene="res://scenes/Boot.tscn"
+boot_splash/bg_color=Color( 0.02, 0, 0.05, 1 )
+config/icon="res://sce_sys/icon0.png"
+
+[autoload]
+
+G="*res://scripts/G.gd"
+Beat="*res://scripts/Beat.gd"
+
+[display]
+
+window/size/width=960
+window/size/height=544
+
+[layer_names]
+
+3d_physics/layer_1="world"
+3d_physics/layer_2="player"
+3d_physics/layer_3="enemy"
+3d_physics/layer_4="hitbox"
+3d_physics/layer_5="hurtbox"
+
+[physics]
+
+common/physics_jitter_fix=0.0
+common/physics_ticks_per_second=30
+
+[rendering]
+
+quality/driver/driver_name="GLES2"
+quality/driver/fallback_to_gles2=true
+vram_compression/import_etc=true
+quality/directional_shadow/size=1024
+quality/shadow_atlas/size=512
+quality/reflections/texture_array_reflections=false
+quality/reflections/high_quality_ggx=false
+quality/shading/force_vertex_shading=true
+quality/shading/force_lambert_over_burley=true
+quality/shading/force_blinn_over_ggx=true
+gles2/compatibility/disable_half_float=true
+environment/default_clear_color=Color( 0.02, 0, 0.05, 1 )
+quality/depth/hdr=false
