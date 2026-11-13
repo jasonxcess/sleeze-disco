@@ -5,5 +5,5 @@
 eboot.bin
 SLEEZE
 build/
-assets/sheets/
+**/assets/sheets/
 *.tmp

@@ -26,11 +26,17 @@ const MULT_GOOD := 1.1
 const MULT_HIT := 1.0
 const MULT_PARRY_MISS := 0.6
 
-# v7.6 TRACKS (PORT_SPEC.md §8): BPM preset + OGG loop. Bass/lead patterns
+# v7.6 TRACKS (PORT_SPEC.md §8): BPM preset + audio loop. Bass/lead patterns
 # live in tools/render_tracks.py, which rendered these loops from them.
+# "sleezetroit" is Shawn's own song (100 BPM, first beat 0.296 s) — the
+# full MP3, not a 60 s loop. Chapter 1 runs on it; "myluva" stays as the
+# fallback if the MP3 fails to load (same BPM, same chapter).
 const TRACKS := {
 	"myluva":     {"name": "MY LUVA",      "bpm": 100, "genre": "FUNK",
 	               "ogg": "res://assets/audio/bgm_myluva.ogg"},
+	"sleezetroit": {"name": "SLEEZETROIT", "bpm": 100, "genre": "FUNK",
+	               "mp3": "res://assets/audio/sleezetroit.mp3",
+	               "first_beat_ms": 296.0, "fallback": "myluva"},
 	"bigscreen":  {"name": "BIG SCREEN",   "bpm": 110, "genre": "FUNK",
 	               "ogg": "res://assets/audio/bgm_bigscreen.ogg"},
 	"dceased":    {"name": "DCEASED",      "bpm": 120, "genre": "HOUSE",

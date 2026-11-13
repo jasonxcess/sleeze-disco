@@ -1,0 +1,15 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+path="res://.import/sleezetroit.mp3-99116178714f12e5e5b3924e4d69d384.mp3str"
+
+[deps]
+
+source_file="res://assets/audio/sleezetroit.mp3"
+dest_files=[ "res://.import/sleezetroit.mp3-99116178714f12e5e5b3924e4d69d384.mp3str" ]
+
+[params]
+
+loop=true
+loop_offset=0

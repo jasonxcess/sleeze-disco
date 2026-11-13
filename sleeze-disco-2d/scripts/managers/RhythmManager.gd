@@ -21,17 +21,20 @@ const BeatData := preload("res://scripts/util/BeatData.gd")
 # Off-beat attacks still land. Mashing looks like a fight scene; timing pays.
 #
 # Songs are the v7.6 TRACKS: 60 s OGG loops rendered from the patterns
-# (tools/render_tracks.py). Beats are periodic from the BPM — no beatmap
-# files. The loop is tracked explicitly (loop_index) so the absolute beat
-# count never resets when the stream wraps.
+# (tools/render_tracks.py), plus sleezetroit — Shawn's own song as a full
+# MP3 (100 BPM, first beat 0.296 s). Beats are periodic from the BPM — no
+# beatmap files. The loop is tracked explicitly (loop_index) so the
+# absolute beat count never resets when the stream wraps, and the grid is
+# re-anchored every loop: the MP3 is 230.452 s = 384.09 beats, so a global
+# grid would drift ~52 ms per loop.
 
 signal beat_hit(beat_index)              # fired once per beat boundary
 signal beat_judged(judgement, offset_ms, multiplier)
 signal song_started(song_name)
 signal song_finished
 
-const LOOP_LEN_MS := 60000.0   # every loop is exactly 60 s (integer beats)
-const FIRST_BEAT_MS := 50.0    # web: nextBeatTime = currentTime + 0.05
+const LOOP_LEN_MS := 60000.0   # synth loops: every loop is exactly 60 s (integer beats)
+const FIRST_BEAT_MS := 50.0    # synth loops: web nextBeatTime = currentTime + 0.05
 
 var player: AudioStreamPlayer
 var sfx: AudioStreamPlayer
@@ -43,6 +46,8 @@ var offset_ms := 0.0
 var calibration_ms := 0.0   # per-device audio latency, set from the title screen
 var playing := false
 var beat_index := -1        # absolute beat count since play (-1 = count-in)
+var first_beat_ms := FIRST_BEAT_MS  # per-track: ms of the first beat in the loop
+var loop_len_ms := LOOP_LEN_MS      # per-track: ms of one loop (MP3 = full song length)
 
 var _loop_index := 0
 var _last_pos_ms := -1.0
@@ -65,22 +70,46 @@ func _ready() -> void:
 		_blips[n] = load("res://assets/audio/blip_" + n + ".wav")
 	set_process(false)
 
-# Load + start a v7.6 track by key. Beats are generated from the BPM.
+# Load + start a track by key. Beats are generated from the BPM.
+# Two kinds of track: the 60 s OGG synth loops (loop_len 60 s, first beat
+# 50 ms) and full MP3 songs (sleezetroit: 230.452 s, first beat 296 ms).
+# An MP3 entry that fails to load falls back to its "fallback" synth loop
+# (same BPM) so the fight still has music.
 func load_track(p_key: String) -> bool:
 	if not BeatData.TRACKS.has(p_key):
 		push_error("RhythmManager: unknown track " + p_key)
 		return false
 	var t: Dictionary = BeatData.TRACKS[p_key]
+	var stream: AudioStream = _load_stream_for(t)
+	if stream == null and t.has("fallback"):
+		var fb_key := String(t["fallback"])
+		push_warning("RhythmManager: " + p_key + " failed to load, falling back to " + fb_key)
+		if not BeatData.TRACKS.has(fb_key):
+			push_error("RhythmManager: unknown fallback track " + fb_key)
+			return false
+		t = BeatData.TRACKS[fb_key]
+		p_key = fb_key
+		stream = _load_stream_for(t)
+	if stream == null:
+		push_error("RhythmManager: cannot load " + p_key)
+		return false
 	track_key = p_key
 	song_name = String(t["name"])
 	bpm = int(t["bpm"])
-	var stream: AudioStreamOGGVorbis = load(String(t["ogg"]))
-	if stream == null:
-		push_error("RhythmManager: cannot load " + String(t["ogg"]))
-		return false
-	# Godot 3.x AudioStreamOGGVorbis has loop + loop_offset only (no
-	# loop_begin/loop_end — those are Godot 4). The 60 s loop restarts
-	# at 0; the beat clock tracks the wrap itself (see _update_loop).
+	first_beat_ms = float(t.get("first_beat_ms", FIRST_BEAT_MS))
+	if t.has("mp3"):
+		# Full song, not a 60 s loop. The beat grid re-anchors every
+		# loop (see _update_loop): the length is not an integer number
+		# of beats (230.452 s at 100 BPM = 384.09 beats), so a global
+		# grid would drift ~52 ms per loop.
+		loop_len_ms = stream.get_length() * 1000.0
+		if loop_len_ms <= 0.0:
+			loop_len_ms = 230452.0
+	else:
+		loop_len_ms = LOOP_LEN_MS
+	# Godot 3.x AudioStreamOGGVorbis and AudioStreamMP3 both have loop +
+	# loop_offset (no loop_begin/loop_end — those are Godot 4). The loop
+	# restarts at 0; the beat clock tracks the wrap itself (see _update_loop).
 	stream.loop = true
 	stream.loop_offset = 0.0
 	player.stream = stream
@@ -89,10 +118,20 @@ func load_track(p_key: String) -> bool:
 	beat_index = -1
 	_loop_index = 0
 	_last_pos_ms = -1.0
-	_next_beat_ms = FIRST_BEAT_MS
+	_next_beat_ms = first_beat_ms
 	set_process(true)
+	print("RhythmManager: track ", track_key, " -> ", player.stream.resource_path, " (", player.stream.get_class(), ") bpm=", bpm, " first_beat_ms=", first_beat_ms, " loop_len_ms=", loop_len_ms)
 	emit_signal("song_started", song_name)
 	return true
+
+# MP3 entries load AudioStreamMP3, OGG entries AudioStreamOGGVorbis.
+# Returns null when the file cannot be loaded.
+func _load_stream_for(t: Dictionary) -> AudioStream:
+	if t.has("mp3"):
+		return load(String(t["mp3"])) as AudioStream
+	if t.has("ogg"):
+		return load(String(t["ogg"])) as AudioStream
+	return null
 
 # Back-compat shim for old callers: a beatmap path is no longer used.
 # Beats come from the BPM. Kept so a stale call fails loudly, not silently.
@@ -113,7 +152,8 @@ func pause_song(paused: bool) -> void:
 	player.stream_paused = paused
 
 # Master clock: absolute ms of audio played, latency-corrected.
-# Loop-aware: the stream wraps every 60 s, the count does not.
+# Loop-aware: the stream wraps every loop (60 s synth loops, 230.452 s
+# MP3), the count does not.
 # Wrap detection runs here too, so any reader (judgement, telegraph,
 # phase) is correct even in the frame right after a wrap.
 func song_position_ms() -> float:
@@ -121,10 +161,17 @@ func song_position_ms() -> float:
 		return 0.0
 	var raw: float = player.get_playback_position() * 1000.0
 	_update_loop(raw)
-	return _loop_index * LOOP_LEN_MS + raw - calibration_ms
+	return _loop_index * loop_len_ms + raw - calibration_ms
 
 func song_position_sec() -> float:
 	return song_position_ms() / 1000.0
+
+# Position (ms) inside the current loop, 0..loop_len. The beat grid is
+# per-loop: the MP3 is 230.452 s = 384.09 beats, so a global grid would
+# drift ~52 ms per loop. The 60 s synth loops are an integer beat count,
+# so this changes nothing for them.
+func _local_pos_ms() -> float:
+	return song_position_ms() - _loop_index * loop_len_ms
 
 func beat_dur_ms() -> float:
 	return 60000.0 / float(max(bpm, 1))
@@ -136,8 +183,7 @@ func beat_dur_sec() -> float:
 func beat_phase01() -> float:
 	if not playing:
 		return 0.0
-	var pos := song_position_ms()
-	var since := fmod(pos - FIRST_BEAT_MS, beat_dur_ms())
+	var since := fmod(_local_pos_ms() - first_beat_ms, beat_dur_ms())
 	if since < 0.0:
 		since += beat_dur_ms()
 	return clamp(since / beat_dur_ms(), 0.0, 1.0)
@@ -199,11 +245,11 @@ func play_blip(blip_name: String) -> void:
 func _press_offset_ms() -> float:
 	if not playing:
 		return 999.0
-	var pos := song_position_ms()
-	var rel := pos - FIRST_BEAT_MS
+	var local := _local_pos_ms()
+	var rel := local - first_beat_ms
 	var k := round(rel / beat_dur_ms())
-	var nearest := FIRST_BEAT_MS + k * beat_dur_ms()
-	return pos - nearest
+	var nearest := first_beat_ms + k * beat_dur_ms()
+	return local - nearest
 
 func _process(_delta: float) -> void:
 	if not playing or get_tree().paused:
@@ -215,9 +261,13 @@ func _process(_delta: float) -> void:
 		emit_signal("beat_hit", beat_index)
 		_next_beat_ms += beat_dur_ms()
 
-# Detect the 60 s loop wrap: the raw position falls back to ~0.
-# Idempotent — safe to call from every reader.
+# Detect the loop wrap: the raw position falls back to ~0.
+# Idempotent — safe to call from every reader. On a wrap, re-anchor the
+# beat grid on the new loop (same as 3D Beat.gd): the MP3 loop is not an
+# integer number of beats, so the marching grid would drift ~52 ms per
+# loop. For the 60 s synth loops this is a no-op (60 s = integer beats).
 func _update_loop(raw_ms: float) -> void:
 	if _last_pos_ms >= 0.0 and raw_ms < _last_pos_ms - 500.0:
 		_loop_index += 1
+		_next_beat_ms = _loop_index * loop_len_ms + first_beat_ms
 	_last_pos_ms = raw_ms

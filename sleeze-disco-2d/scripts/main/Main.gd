@@ -28,7 +28,7 @@ const PLAYER_SPAWN := Vector2(240, 410)
 # Chapter data (PORT_SPEC.md §4.1, §10).
 const BOSS_INFO := {
 	1: {"name": "DR. CLIPBOARD", "title": "HEAD OF DOOR SCIENCE",
-		"track": "myluva", "genre": "FUNK", "bpm": 100,
+		"track": "sleezetroit", "genre": "FUNK", "bpm": 100,
 		"flavour": "Clipboards at the door. Lab coats under the jackets. He checks names. He checks vitals.",
 		"sig": "ROPE SWEEP", "unlock": "DASH STRIKE",
 		"queue": ["stan", "stan", "charger", "stan", "stan", "boss1"]},
@@ -457,7 +457,7 @@ func _build_ui() -> void:
 	box = _mk_screen("mode")
 	box.add_child(_mk_label("Select Track", 18, Color(1.0, 0.78, 0.24), Label.ALIGN_CENTER))
 	box.add_child(_mk_label("PICK YOUR NIGHT", 36, Color(1, 1, 1), Label.ALIGN_CENTER))
-	box.add_child(_mk_label("STORY CHAPTERS RUN ON SLEEZE'S OWN TRACKS — SYNTH REBUILDS, STREAMER-SAFE.", 14, Color(1, 1, 1), Label.ALIGN_CENTER))
+	box.add_child(_mk_label("CH.1 RUNS ON SLEEZETROIT - SLEEZE'S OWN TRACK. CH.2-3 ARE SYNTH REBUILDS.", 14, Color(1, 1, 1), Label.ALIGN_CENTER))
 	for ch in [1, 2, 3]:
 		var info: Dictionary = BOSS_INFO[ch]
 		var b := _mk_button("CH.%d %s — %s · %s %d BPM" % [ch, info["name"], String(BeatData.TRACKS[info["track"]]["name"]), info["genre"], int(info["bpm"])])
@@ -1187,7 +1187,7 @@ func _on_tap_along() -> void:
 		_cal_status.text = "TAP 8 TIMES ON THE CLICK — %d/8" % _cal_taps.size()
 
 # --- auto-test -----------------------------------------------------------------------
-# Scripted smoke run. Jumps straight into chapter 1 (MY LUVA, 100 BPM), walks
+# Scripted smoke run. Jumps straight into chapter 1 (SLEEZETROIT, 100 BPM), walks
 # the player at the nearest living enemy and queues punch/kick on a timer.
 # The beat clock depends on the real audio clock: under a dummy audio driver
 # (headless) get_playback_position() may not advance, so no beat fires and
