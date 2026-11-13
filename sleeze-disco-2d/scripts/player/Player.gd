@@ -106,6 +106,7 @@ var rush_beats_left := 0
 var rush_spd := 1.0
 
 var _sprite: AnimatedSprite = null
+var _ground_dx := 0.0  # SheetFrames.ground_dx(): feet-to-centre x, mirrored with flip_h
 var _atk_timer := 0.0
 var _atk_kind: int = AttackKind.PUNCH
 var _dodge_timer := 0.0
@@ -146,6 +147,8 @@ func _ready() -> void:
 		"knock", "getup", "block", "upper", "taunt", "hiphop", "headspin",
 		"flair", "spinback", "sweep", "armada", "meialua", "spinflip"]
 	_sprite.frames = SheetFramesScript.build(SHEET_KEY, clips)
+	_ground_dx = SheetFramesScript.ground_dx(SHEET_KEY)
+	_sprite.offset.x = _ground_dx
 	var s: float = DRAW_H / SHEET_FRAME_H
 	_sprite.scale = Vector2(s, s)
 	_sprite.position = Vector2(0, -GROUND_BELOW_CENTRE * s)
@@ -265,7 +268,8 @@ func _update_movement(delta: float) -> void:
 			_ghost_timer = GHOST_INTERVAL
 			if game != null:
 				game.fx.add_ghost(_sprite.frames.get_frame(_sprite.animation, _sprite.frame),
-					position, _sprite.flip_h, Color(0.0, 0.94, 1.0), _sprite.scale.x)
+					position, _sprite.flip_h, Color(0.0, 0.94, 1.0), _sprite.scale.x,
+					SheetFramesScript.ground_x(SHEET_KEY))
 		_check_dash_strike()
 	# Attack lunge burst, decays exp(-5 dt), zeroed below 2 px/s.
 	if _lunge_vx != 0.0:
@@ -811,6 +815,7 @@ func _update_anim(delta: float) -> void:
 	if _pose_lock:
 		return  # win pose / dance break holds its clip
 	_sprite.flip_h = facing == -1
+	_sprite.offset.x = _ground_dx * (-1.0 if _sprite.flip_h else 1.0)
 	var bob := sin(RhythmManager.beat_phase01() * TAU) * 2.0
 	match state:
 		State.ATTACK, State.FINISHER:

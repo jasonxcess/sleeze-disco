@@ -87,9 +87,9 @@ func add_ring(pos: Vector2, max_r: float, dur: float, dmg: int, owner) -> void:
 		"dmg": dmg, "owner": owner, "done": false,
 	})
 
-func add_ghost(tex: Texture, pos: Vector2, flip: bool, tint: Color, p_scale: float) -> void:
+func add_ghost(tex: Texture, pos: Vector2, flip: bool, tint: Color, p_scale: float, ground_x: float = 256.0) -> void:
 	_ghosts.append({
-		"tex": tex, "p": pos, "flip": flip, "tint": tint,
+		"tex": tex, "p": pos, "flip": flip, "tint": tint, "gx": ground_x,
 		"scale": p_scale, "life": GHOST_LIFE, "max": GHOST_LIFE,
 	})
 
@@ -213,7 +213,7 @@ func _draw() -> void:
 		tint.a = a
 		var flip_sign := -1.0 if bool(g["flip"]) else 1.0
 		draw_set_transform((g["p"] as Vector2) + Vector2(0, -104.0 * s), 0.0, Vector2(s * flip_sign, s))
-		draw_texture(tex, Vector2(-256, -128), tint)
+		draw_texture(tex, Vector2(-float(g["gx"]), -128), tint)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# Slashes.
 	for sl in _slashes:

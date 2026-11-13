@@ -176,14 +176,20 @@ func _full_rect(c: Control) -> void:
 	c.anchor_bottom = 1.0
 
 func _ready() -> void:
+	BootLog.blog("Main._ready")
 	randomize()
 	_setup_input()
 	_load_save()
+	BootLog.blog("save loaded")
 	RhythmManager.calibration_ms = float(cal_ms)
 	_build_world()
+	BootLog.blog("world built")
 	_build_ui()
+	BootLog.blog("ui built")
 	_build_hud()
+	BootLog.blog("hud built")
 	show_screen("title")
+	BootLog.blog("title shown")
 	# Auto-test: --auto-test [--auto-test-secs=N]. No effect otherwise.
 	var _at_args := OS.get_cmdline_args()
 	if "--auto-test" in _at_args:

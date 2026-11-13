@@ -33,6 +33,7 @@ config/icon="res://assets/sprites/player_sprite.png"
 
 [autoload]
 
+BootLog="*res://scripts/util/BootLog.gd"
 RhythmManager="*res://scripts/managers/RhythmManager.gd"
 
 [display]

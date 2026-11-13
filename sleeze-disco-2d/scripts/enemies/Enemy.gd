@@ -62,6 +62,7 @@ var boss_phase := 0
 var facing := -1
 
 var _sprite: AnimatedSprite = null
+var _ground_dx := 0.0  # SheetFrames.ground_dx(): feet-to-centre x, mirrored with flip_h
 var _shadow: Polygon2D = null
 var _counter_label: Label = null
 var _excl_label: Label = null
@@ -102,6 +103,8 @@ func setup(p_game, p_kind: int, spawn_pos: Vector2, p_speed_mul: float = 1.0) ->
 		"knock", "getup", "block", "upper", "taunt", "hiphop", "headspin",
 		"flair", "spinback", "sweep", "armada", "meialua", "spinflip"]
 	_sprite.frames = SheetFramesScript.build(String(st["sheet"]), clips)
+	_ground_dx = SheetFramesScript.ground_dx(String(st["sheet"]))
+	_sprite.offset.x = _ground_dx
 	var s: float = float(st["draw_h"]) / float(st["frame_h"])
 	_sprite.scale = Vector2(s, s)
 	_sprite.position = Vector2(0, -GROUND_BELOW_CENTRE * s)
@@ -402,6 +405,7 @@ func _clip_dur(clip: String, beats: float) -> float:
 
 func _update_anim(delta: float) -> void:
 	_sprite.flip_h = facing == -1
+	_sprite.offset.x = _ground_dx * (-1.0 if _sprite.flip_h else 1.0)
 	# Hit flash: bright white silhouette for 0.12 s.
 	if _flash_t > 0.0:
 		_sprite.modulate = Color(2.0, 2.0, 2.0, 1.0)
