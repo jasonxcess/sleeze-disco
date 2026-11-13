@@ -3,7 +3,7 @@ extends Control
 # can tell "renderer alive" from "arena hangs". D-pad up/down + X to pick a
 # profile, then it hands over to Main.tscn (the arena, which loads in stages).
 
-const ORDER = ["A", "B", "C", "D"]
+const ORDER = ["A", "B", "C", "D", "E", "F", "G"]
 var sel = 0
 var labels = []
 var started = false
@@ -28,11 +28,11 @@ func _ready():
 	bg.color = Color(0.02, 0, 0.05)
 	bg.rect_size = Vector2(960, 544)
 	add_child(bg)
-	title = _make_label("SLEEZE DISCO 3D  v0.2 PSX", 30, Color(1, 0.3, 0.8), Vector2(40, 40))
-	_make_label("Pick a render mode. Start with A.", 18, Color(0.7, 0.7, 0.85), Vector2(40, 90))
+	title = _make_label("SLEEZE DISCO 3D  v0.2.1 DIAG", 30, Color(1, 0.3, 0.8), Vector2(40, 40))
+	_make_label("Pick a render mode. Test order: A, E, F, G.", 18, Color(0.7, 0.7, 0.85), Vector2(40, 90))
 	for i in range(ORDER.size()):
 		var k = ORDER[i]
-		labels.append(_make_label("", 22, Color(1, 1, 1), Vector2(60, 150 + i * 56)))
+		labels.append(_make_label("", 22, Color(1, 1, 1), Vector2(60, 140 + i * 44)))
 	hint = _make_label("D-pad up/down + X to start", 18, Color(0.4, 1, 0.9), Vector2(40, 470))
 	_make_label("log: " + G.log_path, 14, Color(0.5, 0.5, 0.6), Vector2(40, 504))
 	_refresh()

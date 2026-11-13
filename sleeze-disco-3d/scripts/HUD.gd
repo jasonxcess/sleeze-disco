@@ -28,6 +28,8 @@ func _ready():
 	add_child(root)
 	draw = Control.new(); draw.anchor_right = 1; draw.anchor_bottom = 1; draw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(draw)
+	if G.flag("no_hud"):
+		root.visible = false   # v0.2.1 profile G: HUD logic runs, nothing is drawn
 	draw.connect("draw", self, "_on_draw")
 	pause_panel = ColorRect.new()
 	pause_panel.color = Color(0.03, 0, 0.08, 0.78)
