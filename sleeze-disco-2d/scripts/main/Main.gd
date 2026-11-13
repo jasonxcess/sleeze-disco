@@ -163,6 +163,7 @@ func _font(size: int) -> DynamicFont:
 		return _fonts[size]
 	if _font_data == null:
 		_font_data = load("res://assets/fonts/DejaVuSans-Bold.ttf")
+		BootLog.blog("font: OK" if _font_data != null else "font: FAILED")
 	var f := DynamicFont.new()
 	f.font_data = _font_data
 	f.size = size
@@ -175,10 +176,17 @@ func _full_rect(c: Control) -> void:
 	c.anchor_right = 1.0
 	c.anchor_bottom = 1.0
 
+# Boot logging lives in the BootLog autoload (scripts/util/BootLog.gd):
+# line-flushed stages + texture/static memory to ux0:data/SLZD00001/boot.log
+# on the Vita (user://boot.log on desktop). It supersedes the inline
+# _bootlog() from the v1.2 diagnostic — one logger, same stages, plus
+# memory figures and sheet-build lines (issue #8).
+
 func _ready() -> void:
 	BootLog.blog("Main._ready")
 	randomize()
 	_setup_input()
+	BootLog.blog("input done")
 	_load_save()
 	BootLog.blog("save loaded")
 	RhythmManager.calibration_ms = float(cal_ms)
@@ -340,12 +348,14 @@ func _build_world() -> void:
 	world.name = "World"
 	add_child(world)
 	var far_tex = load("res://assets/backgrounds/bg_club_far.png")
+	BootLog.blog("bg far: OK" if far_tex != null else "bg far: FAILED")
 	if far_tex != null:
 		var far := Sprite.new()
 		far.texture = far_tex
 		far.position = Vector2(WORLD_W / 2.0, WORLD_H / 2.0)
 		world.add_child(far)
 	var lights_tex = load("res://assets/backgrounds/bg_club_lights.png")
+	BootLog.blog("bg lights: OK" if lights_tex != null else "bg lights: FAILED")
 	if lights_tex != null:
 		bg_lights = Sprite.new()
 		bg_lights.texture = lights_tex
