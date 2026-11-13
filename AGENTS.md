@@ -45,6 +45,31 @@ stepping on each other.
 7. **If two AIs disagree on a fix, say so on the issue.** Do not silently
    overwrite another contributor's work. dawgy and Hark resolve it with Shawn.
 
+## Talking to Shawn (read this before you message him)
+
+Shawn has never built a game before. He's the artist and the tester, not a programmer.
+Every message to him must be in plain words:
+
+- **Say it like he knows nothing about game dev.** No jargon. If a tech word is
+  unavoidable, explain it in a few words the first time (e.g. "FPS = how many
+  pictures per second the game draws; 30 is smooth, 2 is a slideshow").
+- **Lead with the answer:** what's wrong, what it means for the game, what happens next.
+- **When you need something from him, give exact steps** as a short numbered list
+  (what to open, what to tap, what to send back). One ask at a time.
+- **Keep it short.** Technical detail goes in the README or the issue, not in his messages.
+- **Be honest.** If something is broken or a dead end, say so plainly and offer the way forward.
+
+### Plain-words cheat sheet (use these words with Shawn)
+- **Engine (Godot):** the ready-made program the game is built on top of.
+- **VPK:** the install file you put on the Vita, like an app installer.
+- **eboot:** the engine's own program inside the VPK. We don't change it.
+- **game.pck:** our part: the levels, characters, music and code.
+- **FPS:** pictures drawn per second. 30 = smooth.
+- **Driver:** the Vita's built-in part that draws graphics.
+- **Crash dump (psp2core file):** the Vita's "black box" report saved after a crash.
+- **LiveArea images:** the icon and home-screen pictures for the game's bubble.
+- **Smoke test:** a quick run on a PC to make sure it starts. Not the same as testing on the Vita.
+
 ## How to contribute a fix
 
 Pick an open issue, work on its branch, and describe the change precisely:
