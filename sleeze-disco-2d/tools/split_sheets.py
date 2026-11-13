@@ -3,12 +3,17 @@
 Source: ~/workspace/games/sleeze-disco-v7/sleeze-disco-master/assets/sheet_*.png
 Meta: PORT_SPEC.md §13.1 (ANIM_SHEETS, verbatim).
 
-Layout: every frame is padded to a 512x256 POT canvas. The frame is placed
-so its ground point (anchorX, groundY) lands at canvas (256, 232) — i.e.
-frame left = 256 - anchorX, frame top = 232 - groundY. That puts the
-ground point 104 px below the texture centre, so in Godot the sprite
-child sits at (0, -104 * scale) with the fighter node's origin at the
-feet. No per-frame offset math at runtime.
+Layout: every frame is padded to a POT canvas — 256x256 for psxm / thug /
+dead, 512x256 for the wide psxw (issue #8: 512x256 everywhere put ~114 MB
+of RGBA textures on the Vita at boot for the player sheet alone). The
+frame is placed so its ground point (anchorX, groundY) lands at canvas
+(GROUND_X[key], 232) — frame left = GROUND_X - anchorX, frame top =
+232 - groundY. The ground point is still 104 px below the texture centre,
+so the sprite child sits at (0, -104 * scale); the horizontal gap
+(canvas_w/2 - GROUND_X) is applied as AnimatedSprite.offset.x by
+SheetFrames.ground_dx() and mirrored with flip_h. GROUND_X was chosen
+from the union bbox of every used frame so nothing is clipped; the
+script fails loudly if a frame would be.
 
 Only the clips each character actually uses are split (see CLIPS_NEEDED):
 the player needs all 20 clips; VEX needs its fight clips; thug/dead use
@@ -53,8 +58,16 @@ CLIPS_NEEDED = {
     "dead": list(CLIPS_SUBSET.keys()),  # charger / boss2
 }
 
-CANVAS_W, CANVAS_H = 512, 256
-GROUND_X, GROUND_Y = 256, 232  # ground point in the padded canvas
+CANVAS_H = 256
+GROUND_Y = 232  # ground point y in the padded canvas
+# sheet key -> (canvas width, ground point x). Keep in sync with
+# SheetFrames.CANVAS in scripts/util/SheetFrames.gd.
+CANVAS = {
+    "psxm": (256, 116),
+    "psxw": (512, 256),
+    "thug": (256, 106),
+    "dead": (256, 98),
+}
 
 
 def split_sheet(key, src_dir, out_dir):
@@ -72,9 +85,16 @@ def split_sheet(key, src_dir, out_dir):
             f = start + i
             col, row = f % cols, f // cols
             frame = sheet.crop((col * fw, row * fh, (col + 1) * fw, (row + 1) * fh))
-            canvas = Image.new("RGBA", (CANVAS_W, CANVAS_H), (0, 0, 0, 0))
-            px = int(round(GROUND_X - anchor_x))
+            canvas_w, ground_x = CANVAS[key]
+            canvas = Image.new("RGBA", (canvas_w, CANVAS_H), (0, 0, 0, 0))
+            px = int(round(ground_x - anchor_x))
             py = int(round(GROUND_Y - ground_y))
+            bb = frame.getbbox()
+            if bb and (px + bb[0] < 0 or px + bb[2] > canvas_w
+                       or py + bb[1] < 0 or py + bb[3] > CANVAS_H):
+                raise SystemExit("%s/%s_%03d: visible pixels fall outside the "
+                                 "%dx%d canvas — adjust CANVAS" % (
+                                     key, clip, i, canvas_w, CANVAS_H))
             canvas.paste(frame, (px, py), frame)
             canvas.save(os.path.join(clip_dir, "%s_%03d.png" % (clip, i)))
             total += 1

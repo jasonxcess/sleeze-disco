@@ -2,9 +2,14 @@ extends Reference
 # SLEEZE DISCO — SheetFrames (Godot 3.5 / GDScript).
 #
 # Builds SpriteFrames from the split sheet PNGs at runtime
-# (tools/split_sheets.py). Frames are 512x256 POT canvases with the
-# ground point at (256, 232) — 104 px below the texture centre — so the
-# fighter node's origin is the feet (see Player/Enemy for the placement).
+# (tools/split_sheets.py). Frames are POT canvases (256x256 for psxm /
+# thug / dead, 512x256 for the wide psxw) with the ground point at
+# (CANVAS[key].ground_x, 232) — 104 px below the texture centre
+# vertically. The horizontal gap between the ground point and the canvas
+# centre is ground_dx(); Player/Enemy apply it as the sprite offset
+# (mirrored when flip_h) so the fighter node's origin is still the feet.
+# The tighter canvases halve texture memory vs the old 512x256 frames
+# (issue #8: the player sheet alone was ~114 MB of RGBA at boot).
 #
 # Clip data mirrors ANIM_SHEETS in the web build (PORT_SPEC.md §13.1).
 # Sheets that lack a clip fall back per CLIP_FALLBACK (web behaviour).
@@ -65,7 +70,28 @@ static func natural_dur(sheet_key: String, clip: String) -> float:
 
 # Build the SpriteFrames for one sheet. Only the requested clips are
 # loaded, so a fight holds player + live enemy sheets, not all five.
+# Canvas size and ground-point x per sheet — must match tools/split_sheets.py.
+const CANVAS := {
+	"psxm": {"w": 256, "ground_x": 116},
+	"psxw": {"w": 512, "ground_x": 256},
+	"thug": {"w": 256, "ground_x": 106},
+	"dead": {"w": 256, "ground_x": 98},
+}
+
+# Texture px from the ground point to the canvas centre. Apply as
+# AnimatedSprite.offset.x (negated when flip_h) so the feet stay at x = 0.
+static func ground_dx(sheet_key: String) -> float:
+	var c: Dictionary = CANVAS.get(sheet_key, {"w": 512, "ground_x": 256})
+	return float(c["w"]) / 2.0 - float(c["ground_x"])
+
+# Ground-point x inside the canvas (FXManager ghosts draw from it).
+static func ground_x(sheet_key: String) -> float:
+	var c: Dictionary = CANVAS.get(sheet_key, {"w": 512, "ground_x": 256})
+	return float(c["ground_x"])
+
 static func build(sheet_key: String, clips: Array) -> SpriteFrames:
+	BootLog.blog("SheetFrames.build %s (%d clips) start" % [sheet_key, clips.size()])
+	var loaded := 0
 	var frames := SpriteFrames.new()
 	var table: Dictionary = SHEET_CLIPS.get(sheet_key, CLIPS_FULL)
 	for clip in clips:
@@ -88,6 +114,8 @@ static func build(sheet_key: String, clips: Array) -> SpriteFrames:
 				push_warning("SheetFrames: missing " + path)
 				continue
 			frames.add_frame(clip, tex)
+			loaded += 1
+	BootLog.blog("SheetFrames.build %s done, %d frames" % [sheet_key, loaded])
 	return frames
 
 # All clips a sheet can play (used by the fighter to know what exists).

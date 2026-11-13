@@ -163,7 +163,7 @@ func _font(size: int) -> DynamicFont:
 		return _fonts[size]
 	if _font_data == null:
 		_font_data = load("res://assets/fonts/DejaVuSans-Bold.ttf")
-		_bootlog("font: OK" if _font_data != null else "font: FAILED")
+		BootLog.blog("font: OK" if _font_data != null else "font: FAILED")
 	var f := DynamicFont.new()
 	f.font_data = _font_data
 	f.size = size
@@ -176,48 +176,28 @@ func _full_rect(c: Control) -> void:
 	c.anchor_right = 1.0
 	c.anchor_bottom = 1.0
 
-# --- boot log (diagnostic, issue #8) ------------------------------------------------
-# v1.1 installs fine but closes ~2s after launch on the Vita, with no error
-# and no crash dump, so we are blind without a log. Every stage of _ready()
-# writes one line to user://boot.log (on the Vita that lands at
-# ux0:data/godot/app_userdata/Sleeze Disco/boot.log — user:// follows the
-# project name in project.godot, same as the 3D builds' SLEEZE DISCO 3D
-# folder) and flushes it
-# immediately, so the last line on the card is where it died. Every write is
-# guarded so a logging failure can never crash the game. If no boot.log
-# appears at all, the failure is before Main._ready (scene/preload load).
-var _boot_log: File = null
-var _boot_t0 := 0
-
-func _bootlog(msg: String) -> void:
-	if _boot_log == null:
-		return
-	_boot_log.store_string("[%dms] %s\n" % [OS.get_ticks_msec() - _boot_t0, msg])
-	_boot_log.flush()
-
-func _bootlog_open() -> void:
-	_boot_t0 = OS.get_ticks_msec()
-	var f := File.new()
-	if f.open("user://boot.log", File.WRITE) == OK:
-		_boot_log = f
-		_bootlog("boot start")
+# Boot logging lives in the BootLog autoload (scripts/util/BootLog.gd):
+# line-flushed stages + texture/static memory to ux0:data/SLZD00001/boot.log
+# on the Vita (user://boot.log on desktop). It supersedes the inline
+# _bootlog() from the v1.2 diagnostic — one logger, same stages, plus
+# memory figures and sheet-build lines (issue #8).
 
 func _ready() -> void:
-	_bootlog_open()
+	BootLog.blog("Main._ready")
 	randomize()
 	_setup_input()
-	_bootlog("input done")
+	BootLog.blog("input done")
 	_load_save()
-	_bootlog("save done")
+	BootLog.blog("save loaded")
 	RhythmManager.calibration_ms = float(cal_ms)
 	_build_world()
-	_bootlog("world done")
+	BootLog.blog("world built")
 	_build_ui()
-	_bootlog("ui done")
+	BootLog.blog("ui built")
 	_build_hud()
-	_bootlog("hud done")
+	BootLog.blog("hud built")
 	show_screen("title")
-	_bootlog("title shown")
+	BootLog.blog("title shown")
 	# Auto-test: --auto-test [--auto-test-secs=N]. No effect otherwise.
 	var _at_args := OS.get_cmdline_args()
 	if "--auto-test" in _at_args:
@@ -368,14 +348,14 @@ func _build_world() -> void:
 	world.name = "World"
 	add_child(world)
 	var far_tex = load("res://assets/backgrounds/bg_club_far.png")
-	_bootlog("bg far: OK" if far_tex != null else "bg far: FAILED")
+	BootLog.blog("bg far: OK" if far_tex != null else "bg far: FAILED")
 	if far_tex != null:
 		var far := Sprite.new()
 		far.texture = far_tex
 		far.position = Vector2(WORLD_W / 2.0, WORLD_H / 2.0)
 		world.add_child(far)
 	var lights_tex = load("res://assets/backgrounds/bg_club_lights.png")
-	_bootlog("bg lights: OK" if lights_tex != null else "bg lights: FAILED")
+	BootLog.blog("bg lights: OK" if lights_tex != null else "bg lights: FAILED")
 	if lights_tex != null:
 		bg_lights = Sprite.new()
 		bg_lights.texture = lights_tex
